@@ -6,10 +6,9 @@ import json
 import os
 
 def fill_blanks(cid=None):
-  now = str(datetime.datetime.now())
-  return ((now.day, now.hour, now.minute)
-          if cid is None
-          else (cid, now.day, now.hour, now.minute))
+  now = datetime.datetime.now()
+  values = (now.year, now.month, now.day, now.hour, now.minute)
+  return values if cid is None else tuple(cid) + values
 
 def minute():
   return fill_blanks()[-1]
@@ -21,7 +20,15 @@ def results_are_final(state_result_list, precinct_result_dict):
                   for d in v)
               for v in precinct_result_dict.values()))
 
+def intervals():
+  for x in (10,8,6,4):
+    yield x
+    yield x
+  while True:
+    yield 2
+
 class AutoDown:
+  
   def __init__(
       self,
       date_string,
@@ -41,13 +48,14 @@ class AutoDown:
                        if cache_path and not cache_path.endswith('/') 
                        else cache_path)
     self.getter = simulator or self
+    self.now_ish = None
   
   def cache_it(self, label, json):
     if not self.cache_path:
       return
-    times = fill_blanks()
-    content = tuple(label) + times
-    with open(self.cache_path + '%s_%d-%d-%d.txt' % content, 'w') as into:
+    content = tuple(label) + self.now_ish
+    with open(self.cache_path +
+              '%s_%d-%d-%d-%d-%d.txt' % content, 'w') as into:
       into.write(str(json)+'\n')
   
   def upload(self, state, county, prec):
@@ -64,47 +72,53 @@ class AutoDown:
     subprocess.run("git add .".split(),
                    cwd=self.repo_path)
     subprocess.run(
-        ['git', 'commit', '-m', "upload %d-%d-%d results"%fill_blanks()],
+        ['git',
+         'commit',
+         '-m',
+         "upload %d-%d-%d-%d-%d results" % self.now_ish],
         cwd=self.repo_path)
     subprocess.run(
         "git push origin master".split(),
         cwd=self.repo_path)
-  
-  #method for simulator
-  def get_county(self, countyID):
+
+  def fetch(self, label, countyID, now_ish):
+    y,l,d,h,m = now_ish
     return requests.get(
-        self.base_url + 'results_%d.txt?v=%d-%d-%d' % fill_blanks(countyID)
+        self.base_url + label + '_%d.txt?v=%d-%d-%d' % (countyID,d,h,m)
         ).json()
   
   #method for simulator
-  def get_state_results(self):
-    return self.get_county(0)
+  def get_county(self, countyID, now_ish):
+    return self.fetch('results', countyID, now_ish)
   
   #method for simulator
-  def get_precincts(self, countyID):
-    return requests.get(
-        self.base_url + 'precinct_%d.txt?v=%d-%d-%d' % fill_blanks(countyID)
-        ).json()
+  def get_state_results(self, now_ish):
+    return self.get_county(0, now_ish)
   
+  #method for simulator
+  def get_precincts(self, countyID, now_ish):
+    return self.fetch('precinct', countyID, now_ish)
+
   def run(self):
     prev_state_results = None
     
     while True:
-      prev_minute = minute()
+      self.now_ish = fill_blanks()
+      prev_minute = self.now_ish[-1]
       
-      state_results = self.getter.get_state_results()
+      state_results = self.getter.get_state_results(self.now_ish)
       precincts = None
       if state_results != prev_state_results:
         prev_state_results = state_results
+        
+        counties = {county:self.getter.get_county(county, self.now_ish)
+                    for county in self.countyIDs}
+        precincts = {county:self.getter.get_precincts(county, self.now_ish)
+                     for county in self.countyIDs}
+        
         print("Change of state")
         self.cache_it("state",state_results)
-        
-        counties = {county:self.getter.get_county(county)
-                    for county in self.countyIDs}
         self.cache_it("counties",counties)
-        
-        precincts = {county:self.getter.get_precincts(county)
-                     for county in self.countyIDs}
         self.cache_it("precincts",precincts)
         
         self.upload(state_results, counties, precincts)
@@ -113,9 +127,12 @@ class AutoDown:
         print("All precincts reported. Done.")
         return
       
-      while minute() == prev_minute:
-        time.sleep(10)
-      print("Doing it again: "+minute())
+      for interval in intervals():
+        m = minute()
+        if m != prev_minute:
+          print("Doing it again: " + m)
+          break
+        time.sleep(interval)
 
 class FromCache:
   def __init__(self, cache_dir, sim_start):
@@ -128,53 +145,48 @@ class FromCache:
     #The actual moment in time when this simulation begins running
     self.op_start = None 
     
-    #TODO sort as datetime.datetime objects then convert to tuples
-    self.cache_minutes = [
-        tuple(int(n)
-              for n in file[1+file.index('_'):file.index('.')].split('-'))
-        for file in os.listdir(self.cache_dir[:-1])
-        if any(file.startswith(x) and file.endswith('.txt')
-               for x in ('state','counties','precincts'))]
+    self.cache_minutes = {
+        label:sorted(tuple(int(n)
+                           for n in file[1+file.index('_'):-4].split('-'))
+                     for file in os.listdir(self.cache_dir)
+                     if file.startswith(label))
+        for label in ('state','counties','precincts')}
   
-  def date_time_tuple(self):
-    now = datetime.datetime.now()
+  def simulation_moment(self, now_ish):
+    now = datetime.datetime( *now_ish )
     diff = now - self.op_start
-    then = str(self.sim_start + diff)
-    return (then.day, then.hour, then.minute)
+    then = self.sim_start + diff
+    return (then.year, then.month, then.day, then.hour, then.minute)
   
-  def before(self, dhm):
-      if dhm in self.cache_minutes:
-        return dhm
+  def before(self, label, sim_moment):
+      if sim_moment in self.cache_minutes[label]:
+        return sim_moment
       else:
         return next(iter(minute
-                         for minute in reversed(self.cache_minutes)
-                         if minute < dhm),
-                    next(iter(self.cache_minutes)))
+                         for minute in reversed(self.cache_minutes[label])
+                         if minute < sim_moment),
+                    next(iter(self.cache_minutes[label])))
   
-  def set_op_start(self):
-    self.op_start = self.op_start or datetime.datetime.now()
+  def set_op_start(self, now_ish):
+    self.op_start = self.op_start or datetime.datetime( *now_ish )
   
-  def get_county(self, countyID):
-    self.set_op_start()
-    ddt = self.date_time_tuple()
-    cache_dhm = self.before(ddt)
+  def get_from_cache(self, label, now_ish):
+    self.set_op_start(now_ish)
+    simmom = self.simulation_moment(now_ish)
+    cache_moment = self.before(label, simmom)
     with open(
-        self.cache_dir + "counties_%d-%d-%d.txt" % cache_dhm, 'r') as outof:
-      return json.load(outof)[countyId]
-  
-  def get_state_results(self):
-    self.set_op_start()
-    ddt = self.date_time_tuple()
-    cache_dhm = self.before(ddt)
-    with open(self.cache_dir + 'state_%d-%d-%d.txt' % ddt, 'r') as outof:
+        self.cache_dir + label + "_%d-%d-%d-%d-%d.txt" % cache_moment,
+        'r') as outof:
       return json.load(outof)
   
-  def get_precincts(self, countyID):
-    self.set_op_start()
-    ddt = self.date_time_tuple()
-    cache_dhm = self.before(ddt)
-    with open(self.cache_dir + "precincts_%d-%d-%d.txt" % ddt, 'r') as outof:
-      return json.load(outof)[countyId]
+  def get_county(self, countyID, now_ish):
+    return self.get_from_cache('counties', now_ish)[countyId]
+  
+  def get_state_results(self, now_ish):
+    return self.get_from_cache('state', now_ish)
+  
+  def get_precincts(self, countyID, now_ish):
+    return self.get_from_cache('precincts', now_ish)[countyId]
 
 #Fetch data at the statewide level for the election of interest.
 #If all precincts have reported and results are final, exit
