@@ -14,14 +14,14 @@ while(true){
   var results = JSON.parse(fetch.responseText);
   
   if(results != prev_results){
-    //TODO send fetch.responseText to main thread as an "update" message
-    
+    //send results to main thread as an "update" message
+    self.postMessage(results);
   }
   prev_results = results;
   
   if(is_final(results)){
-    //TODO leave suicide note for main thread to find
-    
+    //leave suicide note for main thread to find
+    self.postMessage({'an_hero': true});
     //kill self
     self.close();
   }
@@ -34,13 +34,19 @@ while(true){
       minute = test_minute;
       break;
     } else{
-      //TODO wait 5 seconds
-      
+      wait_5();
     }
   }
 }
 
+async function wait_5() {
+  await sleep(5000);
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function is_final(results){
-  //TODO
-  return true;
+  return results.isFinal;
 }
