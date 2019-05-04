@@ -1,15 +1,35 @@
 <html>
   <head>
     <script>
-      var poll_worker = new Worker('poll_worker.js'); //TODO create this file
-      poll_worker.onmessage = function(e) { console.log(e, e.data) };
-      poll_worker.onerror = function(e) { console.log('Error:', e) };
-      poll_worker.postMessage(); //begin working
-      
+      var poll_worker = new Worker('poll_worker.js');
+
+      //Somehow adding an event listener to the worker thread actually adds it to the main thread?
+      poll_worker.addEventListener("message", function(event){
+        if(event.data.an_hero){
+          //TODO maybe add a thing to the legend?
+          console.log("He's dead, Jim.");
+          document.getElementById('biggo').style.backgroundColor = 'white';
+        } else{
+          update(e.data);
+        }
+      }, false);
+
+      //poll_worker.onmessage = function(e) { console.log(e, e.data) };
+      poll_worker.onerror = function(e) { 
+        console.log('Error:', e) 
+      };
+      poll_worker.postMessage("https://fiveham.github.io/Live-Elections/2019/apr/30/nc03/summary.txt"); //begin working
+
+      function update(results){
+        //TODO
+        console.log("Why can't I hold all these results?");
+        console.log(results);
+        console.log();
+      }
     </script>
   </head>
   <body>
-    <div style="display:inline-block; height:10000px; width:100px;">
+    <div id="biggo" style="display:inline-block; height:10000px; width:100px; background-color:yellow;">
       Lorem<br>
       ipsum<br>
       dolor<br>
