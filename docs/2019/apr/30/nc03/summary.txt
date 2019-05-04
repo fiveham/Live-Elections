@@ -5,7 +5,7 @@
     "L": ["Lamb Burger Ghinni", "Liquid Snake"],
     "R": ["Repairmanmanmanmanman", "Robin"]
   },
-  by_county: {
+  "by_county": {
     "BEAUFORT": {
       "top": {
         "D": 2,
