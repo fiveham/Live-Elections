@@ -13,7 +13,11 @@ function start(event){
   while(true){
     var fetch = new XMLHttpRequest();
     fetch.open("GET", summary_url+'?m='+minute, false);
+    
+    console.log("About to GET: "+minute);
     fetch.send(null);
+    console.log("Just to got: "+minute);
+    
     var results = JSON.parse(fetch.responseText);
 
     if(results != prev_results){
