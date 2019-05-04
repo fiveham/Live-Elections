@@ -5,13 +5,9 @@ import subprocess
 import json
 import os
 
-def fill_blanks(cid=None):
+def now_tuple():
   now = datetime.datetime.now()
-  values = (now.year, now.month, now.day, now.hour, now.minute)
-  return values if cid is None else tuple(cid) + values
-
-def minute():
-  return fill_blanks()[-1]
+  return (now.year, now.month, now.day, now.hour, now.minute)
 
 def results_are_final(state_result_list, precinct_result_dict):
   sample = next(iter(state_result_list))
@@ -103,13 +99,14 @@ class AutoDown:
     prev_state_results = None
     
     while True:
-      self.now_ish = fill_blanks()
-      prev_minute = self.now_ish[-1]
+      right_now_ish = now_tuple())
+      prev_minute = right_now_ish[-1]
       
-      state_results = self.getter.get_state_results(self.now_ish)
+      state_results = self.getter.get_state_results(right_now_ish)
       precincts = None
       if state_results != prev_state_results:
         prev_state_results = state_results
+        self.now_ish = right_now_ish
         
         counties = {county:self.getter.get_county(county, self.now_ish)
                     for county in self.countyIDs}
@@ -128,7 +125,7 @@ class AutoDown:
         return
       
       for interval in intervals():
-        m = minute()
+        m = now_tuple()[-1]
         if m != prev_minute:
           print("Doing it again: " + m)
           break
@@ -201,7 +198,7 @@ def run():
     78:'Robeson',
     83:'Scotland',
     90:'Union'}
-  repo = "."
+  repo = "./docs/2019/may/14/nc09/"
   cache_write = "./../cache/2019/may/14/"
   
   AutoDown(election_day, nc09_counties, repo, cache_write).run()
@@ -228,7 +225,7 @@ def dry_run():
     74: 'Pitt',
     89: 'Tyrrell'}
   
-  repo = "."
+  repo = "./docs/2019/apr/30/nc03/"
   cache_read = "./../cache/2019/apr/30/"
   
   #start simulation from 7:29PM, before polls even closed
