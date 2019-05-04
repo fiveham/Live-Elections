@@ -53,7 +53,8 @@ class AutoDown:
     with open(self.cache_path +
               '%s_%d-%d-%d-%d-%d.txt' % content, 'w') as into:
       into.write(str(json)+'\n')
-  
+
+  #TODO distill minimal useful info and upload that, too, as its own file
   def upload(self, state, county, prec):
     with open(self.repo_path + "/results_0.txt", 'w') as into:
         into.write(str(state))
