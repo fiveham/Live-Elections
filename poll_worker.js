@@ -3,38 +3,42 @@
    results are final, or else just waits until the next minute to start the cycle over
    again. */
 
-var prev_results = null;
-var summary_url = "https://fiveham.github.io/Live-Elections/2019/apr/30/nc03/summary.txt?m=";
+self.addEventListener('message', start, false);
 
-var minute = (new Date()).getMinutes();
-while(true){
-  var fetch = new XMLHttpRequest();
-  fetch.open("GET", summary_url+minute, false);
-  fetch.send(null);
-  var results = JSON.parse(fetch.responseText);
-  
-  if(results != prev_results){
-    //send results to main thread as an "update" message
-    self.postMessage(results);
-  }
-  prev_results = results;
-  
-  if(is_final(results)){
-    //leave suicide note for main thread to find
-    self.postMessage({'an_hero': true});
-    //kill self
-    self.close();
-  }
-  
-  //wait until next minute
-  var test_minute;
+function start(event){
+  var prev_results = null;
+  var summary_url = event.data;
+
+  var minute = (new Date()).getMinutes();
   while(true){
-    test_minute = (new Date()).getMinutes();
-    if(test_minute != minute){
-      minute = test_minute;
-      break;
-    } else{
-      wait_5();
+    var fetch = new XMLHttpRequest();
+    fetch.open("GET", summary_url+'?m='+minute, false);
+    fetch.send(null);
+    var results = JSON.parse(fetch.responseText);
+
+    if(results != prev_results){
+      //send results to main thread as an "update" message
+      self.postMessage(results);
+    }
+    prev_results = results;
+
+    if(is_final(results)){
+      //leave suicide note for main thread to find
+      self.postMessage({'an_hero': true});
+      //kill self
+      self.close();
+    }
+
+    //wait until next minute
+    var test_minute;
+    while(true){
+      test_minute = (new Date()).getMinutes();
+      if(test_minute != minute){
+        minute = test_minute;
+        break;
+      } else{
+        wait_5();
+      }
     }
   }
 }
