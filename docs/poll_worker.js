@@ -6,7 +6,7 @@
 self.addEventListener('message', start, false);
 
 function start(event){
-  var prev_results = null;
+  var prev_results = {'updated': null};
   var summary_url = event.data;
 
   var minute = (new Date()).getMinutes();
@@ -16,11 +16,11 @@ function start(event){
     
     console.log("About to GET: "+minute);
     fetch.send(null);
-    console.log("Just to got: "+minute);
+    console.log("Just got: "+minute);
     
     var results = JSON.parse(fetch.responseText);
 
-    if(results != prev_results){
+    if( !results['updated'].equals(prev_results['updated']) ){
       //send results to main thread as an "update" message
       self.postMessage(results);
     }
