@@ -19,14 +19,13 @@
         if(event.data.an_hero){
           //TODO maybe add a thing to the legend?
           poll_worker.terminate(); //self.close() within the Worker itself isn't working; so, double-kill that thread
-          console.log("He's dead, Jim.");
+          //console.log("He's dead, Jim.");
           document.getElementById('biggo').style.backgroundColor = 'white';
         } else{
           update(event.data);
         }
       }, false);
 
-      //poll_worker.onmessage = function(e) { console.log(e, e.data) };
       poll_worker.onerror = function(e) { 
         console.log('Error:', e) 
       };
@@ -34,10 +33,14 @@
 
       function update(results){
         //TODO
-        console.log("Why can't I hold all these results?");
-        console.log(results);
-        console.log();
-      }/**/
+        var news = "Top Candidates:";
+        for(var party in ['D','L','R']){
+          for(var i=0; i<2; i++){
+            news += "<br>"+results.top[party][i];
+          }
+        }
+        document.getElementById('biggo').innerHtml = news;
+      }
     </script>
   </head>
   <body>
