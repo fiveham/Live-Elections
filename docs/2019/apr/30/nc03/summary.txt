@@ -1,6 +1,6 @@
 {
-  "updated": "4-7-26", 
-  "isFinal": "", 
+  "updated": "4-7-27", 
+  "isFinal": "yes", 
   "top": {
     "D": ["Donald Duck", "Dorkfish"],
     "L": ["Lamb Burger Ghinni", "Liquid Snake"],
