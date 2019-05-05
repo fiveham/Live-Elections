@@ -165,6 +165,7 @@ class AutoDown:
   def get_precincts(self, countyID, now_ish):
     return self.fetch('precinct', countyID, now_ish)
 
+  #TODO make this thing shut off after midnight because that's too long
   def run(self):
     prev_state_results = None
     
