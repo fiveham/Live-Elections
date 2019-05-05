@@ -26,26 +26,26 @@ function start(event){
     }
     prev_results = results;
     
-    if(is_final(results)){
-      //leave suicide note for main thread to find
-      self.postMessage({'an_hero': true});
-      //kill self
-      self.close();
-      break; //self.close() isn't killing the thread. Don't know why.
-    }
-    
-    //wait until next minute
-    var test_minute;
-    while(true){
-      test_minute = (new Date()).getMinutes();
-      if(test_minute != minute){
-        minute = test_minute;
-        break;
-      } else{
-        wait_5();
+    if(results.isFinal){
+      break; //leave the loop
+    } else{
+      //wait until next minute
+      var test_minute;
+      while(true){
+        test_minute = (new Date()).getMinutes();
+        if(test_minute != minute){
+          minute = test_minute;
+          break;
+        } else{
+          wait_5();
+        }
       }
     }
   }
+  //leave suicide note for main thread to find
+  self.postMessage({'an_hero': true});
+  //kill self
+  self.close();
 }
 
 async function wait_5() {
@@ -54,8 +54,4 @@ async function wait_5() {
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function is_final(results){
-  return results.isFinal;
 }
