@@ -23,6 +23,51 @@ def intervals():
   while True:
     yield 2
 
+def top1(list, pty):
+  top = max(list, key=(lambda d : (d['vct']
+                                    if d['pty'] == pty
+                                    else -1)))
+  return top['bnm']
+
+def top2(list, pty):
+  top = top1(list,pty)
+  sec = max(list, key=(lambda d : (d['vct']
+                                    if d['bnm'] != top and d['pty'] == pty
+                                    else -1)))
+  return [top,sec['bnm']]
+
+def abstrindex(pty, tops, name):
+  try:
+    return tops[pty[0]].index(name)
+  except ValueError: #name not in list
+    return 2
+
+def is_unreported(list): #varies between cty and pct results
+  try: #only precinct results have 'sta'
+    return all(d['sta'] == 'Not Reported' for d in list)
+  except KeyError: #but county results have 'prt'
+    return all(d['prt'] == '0' for d in list) #XXX not sure of type of d['prt']
+
+def get_tops(list, tops):
+  if is_unreported(list):
+    return {"D": -1, "L": -1, "R": -1}
+  else:
+    return {pty[0]:abstrindex(pty,tops,top1(list,pty))
+            for pty in ("DEM",'LIB','REP')}
+
+def partition_by_precinct(county_results_by_precinct, tops):
+  result = {d['aid']:[] for d in county_results_by_precinct}
+  for d in county_results_by_precinct:
+    precinct_name = d['aid']
+    result[precinct_name].append(d)
+  
+  for precinct_name in result:
+    prec_el_results = result[precinct_name]
+    g = get_tops(prec_el_results, tops)
+    d = {'top': g}
+    result[precinct_name] = d
+  return result
+
 class AutoDown:
   
   def __init__(
@@ -34,8 +79,8 @@ class AutoDown:
       simulator=None):
     
     if cache_path and simulator:
-        raise Exception(("Simulating by reading a cache and then also writing "
-                         "into that cache would be a bad idea."))
+      raise Exception(("Simulating by reading a cache and then also writing "
+                       "into that cache would be a bad idea."))
     #if cache_path is falsey, step-by-step results are not cached
     self.base_url = 'https://er.ncsbe.gov/enr/%s/data/' % date_string
     self.countyIDs = list(countyIDs)
@@ -54,18 +99,42 @@ class AutoDown:
               '%s_%d-%d-%d-%d-%d.txt' % content, 'w') as into:
       into.write(str(json)+'\n')
 
-  #TODO distill minimal useful info and upload that, too, as its own file
-  def upload(self, state, county, prec):
+  def distill_results(self, state, county, prec, finality):
+    tops = {
+      'D': top2(state, 'DEM'),
+      'L': top2(state, 'LIB'),
+      'R': top2(state, 'REP')
+    }
+
+    distilled = {
+      'updated': "-".join(self.now_ish),
+      'isFinal': true if finality else "",
+      'top': tops,
+      'by_county': {
+        COUNTY: {
+          'top': get_tops(county[COUNTY], tops),
+          'by_precinct': partition_by_precinct(prec[COUNTY], tops),
+        }
+        for COUNTY in county
+      }
+    }
+    
+    return distilled
+  
+  def upload(self, state, county, prec, finality):
     with open(self.repo_path + "/results_0.txt", 'w') as into:
-        into.write(str(state))
-    for County,json in county.items():
-        with open(self.repo_path + "/results_%d.txt" % County,
-                  'w') as into:
-            into.write(str(json))
-    for County,json in prec_dict.items():
-        with open(self.repo_path + "/precinct_%d.txt" % County,
-                  'w') as into:
-            into.write(str(json))
+      json.dump(state, into)
+
+    for source,term in [[county, 'results'],
+                        [prec,   'precinct']]:
+      for County,j in source.items():
+        with open(self.repo_path + "/%s_%d.txt" % (term,County), 'w') as into:
+          json.dump(j, into)
+    
+    distilled = self.distill_results(state, county, prec, finality)
+    with open(self.repo_path + "/summary.txt", 'w') as into:
+      json.dump(distilled, into)
+    
     subprocess.run("git add .".split(),
                    cwd=self.repo_path)
     subprocess.run(
@@ -105,6 +174,7 @@ class AutoDown:
       
       state_results = self.getter.get_state_results(right_now_ish)
       precincts = None
+      finality = None
       if state_results != prev_state_results:
         prev_state_results = state_results
         self.now_ish = right_now_ish
@@ -118,10 +188,14 @@ class AutoDown:
         self.cache_it("state",state_results)
         self.cache_it("counties",counties)
         self.cache_it("precincts",precincts)
-        
-        self.upload(state_results, counties, precincts)
-        
-      if results_are_final(state_results, precincts):
+
+        finality = results_are_final(state_results, precincts)
+        self.upload(state_results, counties, precincts, finality)
+
+      finality = (finality
+                  if finality is not None
+                  else results_are_final(state_results, precincts))
+      if finality:
         print("All precincts reported. Done.")
         return
       
@@ -157,13 +231,13 @@ class FromCache:
     return (then.year, then.month, then.day, then.hour, then.minute)
   
   def before(self, label, sim_moment):
-      if sim_moment in self.cache_minutes[label]:
-        return sim_moment
-      else:
-        return next(iter(minute
-                         for minute in reversed(self.cache_minutes[label])
-                         if minute < sim_moment),
-                    next(iter(self.cache_minutes[label])))
+    if sim_moment in self.cache_minutes[label]:
+      return sim_moment
+    else:
+      return next(iter(minute
+                       for minute in reversed(self.cache_minutes[label])
+                       if minute < sim_moment),
+                  next(iter(self.cache_minutes[label])))
   
   def set_op_start(self, now_ish):
     self.op_start = self.op_start or datetime.datetime( *now_ish )
