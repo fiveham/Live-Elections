@@ -13,6 +13,7 @@ self.addEventListener('message', start2, false);
 
 function start2(event){
   summary_url = event.data;
+  cycle();
   looperator = setInterval(cycle, 60000);
 }
 
