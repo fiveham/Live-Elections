@@ -19,20 +19,21 @@ function start(event){
     console.log("Just got: "+minute);
     
     var results = JSON.parse(fetch.responseText);
-
-    if( !(results['updated'].valueOf() == prev_results['updated'].valueOf()) ){
+    
+    if( results['updated'].valueOf() != prev_results['updated'].valueOf() ){
       //send results to main thread as an "update" message
       self.postMessage(results);
     }
     prev_results = results;
-
+    
     if(is_final(results)){
       //leave suicide note for main thread to find
       self.postMessage({'an_hero': true});
       //kill self
       self.close();
+      break; //self.close() isn't killing the thread. Don't know why.
     }
-
+    
     //wait until next minute
     var test_minute;
     while(true){
