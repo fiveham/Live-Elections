@@ -7,9 +7,38 @@
         GeoJSON precinct 'Label' == NCSBE precinct cache 'aid'
         GeoJSON precinct 'COUNTY' == NCSBE precinct cache key
       Counties:
-        GeoJSON county "CountyID" (int) === NCSBE county cache 'cid' (string)
+        GeoJSON county "CountyID" (int) == NCSBE county cache 'cid' (string)
       District:
         Use top D,L,R color regardless of who.
+      
+      Notes on the structure of summary results:
+      It's a dictionary, with four properties: updated, isFinal, top, and by_county.
+      
+      updated and isFinal are just strings, indicating when the results were last updated 
+      and whether the results are final for the night or not.
+      
+      isFinal is the empty string while results are not final; when results are final, it's 
+      set to something meaningful like "yes"; in case results stall out in one county or 
+      something like that (which happened with Harnett county last November), I may 
+      manually set the value to something like "Hyde county isn't reporting any results".
+      
+      top maps to a dictionary that maps from D, L, and R onto two-element arrays 
+      containing the names of the top and second-highest vote-getters in each party. The
+      top candidate is named at index 0; the second at index 1.
+      
+      by_county maps to a dictionary whose keys are the names (in all-caps) of the counties
+      involved in this election.
+      
+      Each dictionary for a county has two properties: top and by_precinct
+      
+      top maps to a dictionary from each party initial to one of four values indicating 
+      which name this county should be colored for: 0 if for the top candidate of the party,
+      1 if for the second-highest candidate, 2 if for "other" in the party, and -1 if it is 
+      as yet unreported and needs to be colored as such.
+      
+      by_precinct maps to a dictionary that maps from the 'aid' or 'Label' for each precinct
+      in the county to a dictionary with one property (top), which maps to a dictionary 
+      with the same structure as the 'top' pertaining to a county entry.
       */
       
       var poll_worker = new Worker('poll_worker.js');
@@ -17,7 +46,6 @@
       //Somehow adding an event listener to the worker thread actually adds it to the main thread?
       poll_worker.addEventListener("message", function(event){
         if(event.data.an_hero){
-          //TODO maybe add a thing to the legend?
           poll_worker.terminate(); //self.close() within the Worker itself isn't working; so, double-kill that thread
           //console.log("He's dead, Jim.");
           document.getElementById('biggo').style.backgroundColor = 'white';
@@ -32,9 +60,8 @@
       poll_worker.postMessage("https://fiveham.github.io/Live-Elections/2019/apr/30/nc03/summary.txt"); //begin working
 
       function update(results){
-        //TODO
         var news = "Top Candidates:";
-        for(var party in ['D','L','R']){
+        for(var party in 'DLR'){
           for(var i=0; i<2; i++){
             news += "<br>"+results.top[party][i];
           }
