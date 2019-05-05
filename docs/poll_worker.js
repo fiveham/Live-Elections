@@ -36,9 +36,9 @@ function cycle(){
   
   //check if final --> msg to main thread, kill self, quit looping
   if(results.isFinal){
+    clearInterval(looperator);
     self.postMessage({'an_hero': true});
     self.close();
-    clearInterval(looperator);
   }
   
   //wait till next minute
