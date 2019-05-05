@@ -20,7 +20,7 @@ function start(event){
     
     var results = JSON.parse(fetch.responseText);
 
-    if( !results['updated'].equals(prev_results['updated']) ){
+    if( !(results['updated'].valueOf() == prev_results['updated'].valueOf()) ){
       //send results to main thread as an "update" message
       self.postMessage(results);
     }
