@@ -6,7 +6,7 @@
 self.addEventListener('message', start, false);
 
 function start(event){
-  var prev_results = {'updated': null};
+  var prev_results = {'updated': ""};
   var summary_url = event.data;
 
   var minute = (new Date()).getMinutes();
