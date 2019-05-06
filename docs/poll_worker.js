@@ -26,15 +26,18 @@ function cycle(){
   var fetch = new XMLHttpRequest();
   fetch.open("GET", summary_url+'?m='+minute+'&s='+second, false);
   fetch.send(null);
+  if(fetch.status >= 400){
+    return;
+  }
   var results = JSON.parse(fetch.responseText);
   
-  //check if diff't --> msg to main thread
-  if( results['updated'].valueOf() != prev_results['updated'].valueOf() ){
+  //check if different --> msg to main thread
+  if( results.updated.valueOf() != prev_results.updated.valueOf() ){
     self.postMessage(results);
     prev_results = results;
   }
   
-  //check if final --> msg to main thread, kill self, quit looping
+  //check if final --> quit looping, msg to main thread, kill self
   if(results.isFinal){
     clearInterval(looperator);
     self.postMessage({'an_hero': true});
