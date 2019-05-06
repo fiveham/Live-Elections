@@ -213,12 +213,14 @@ class AutoDown:
         time.sleep(interval)
 
 class FromCache:
-  def __init__(self, cache_dir, sim_start):
+  def __init__(self, cache_dir, sim_start, translator=(lambda cId : cId)):
     self.cache_dir = cache_dir if cache_dir.endswith('/') else cache_dir+'/'
     
     #When this simulation starts, it will pretend that that moment is the
     #moment represented by sim_start
     self.sim_start = sim_start
+
+    self.translator = translator
     
     #The actual moment in time when this simulation begins running
     self.op_start = None 
@@ -258,13 +260,13 @@ class FromCache:
       return json.load(outof)
   
   def get_county(self, countyID, now_ish):
-    return self.get_from_cache('counties', now_ish)[countyId]
+    return self.get_from_cache('counties', now_ish)[self.translator(countyId)]
   
   def get_state_results(self, now_ish):
     return self.get_from_cache('state', now_ish)
   
   def get_precincts(self, countyID, now_ish):
-    return self.get_from_cache('precincts', now_ish)[countyId]
+    return self.get_from_cache('precincts', now_ish)[self.translator(countyId)]
 
 #Fetch data at the statewide level for the election of interest.
 #If all precincts have reported and results are final, exit
@@ -286,7 +288,7 @@ def run():
     election_day,
     nc09_counties,
     repo,
-    translator=(lambda cId: nc09_counties[cId]),
+    translator=(lambda cId: nc09_counties[cId].upper()),
     cache=cache_write
     ).run()
 
@@ -314,15 +316,19 @@ def dry_run():
   
   repo = "./docs/2019/apr/30/nc03/"
   cache_read = "./../cache/2019/apr/30/"
+  trans = lambda cId: nc03_counties[cId].upper()
   
   #start simulation from 7:29PM, before polls even closed
-  sim = FromCache(cache_read, datetime.datetime(2019, 4, 30, 19, 29))
+  sim = FromCache(
+    cache_read,
+    datetime.datetime(2019, 4, 30, 19, 29),
+    translator=trans)
   
   AutoDown(
     election_day,
     nc03_counties,
     repo,
-    translator=(lambda cId: nc03_counties[cId]),
+    translator=trans,
     cache=None,
     simulator=sim
     ).run()
