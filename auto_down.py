@@ -75,6 +75,7 @@ class AutoDown:
       date_string,
       countyIDs,
       repo_path,
+      translator=(lambda cId : cId),
       cache_path='./cache/',
       simulator=None):
     
@@ -85,11 +86,13 @@ class AutoDown:
     self.base_url = 'https://er.ncsbe.gov/enr/%s/data/' % date_string
     self.countyIDs = list(countyIDs)
     self.repo_path = repo_path[:-1] if repo_path.endswith('/') else repo_path
+    self.translator = translator
     self.cache_path = ((cache_path + '/') 
                        if cache_path and not cache_path.endswith('/') 
                        else cache_path)
     self.getter = simulator or self
     self.now_ish = None
+  
   
   def cache_it(self, label, json):
     if not self.cache_path:
@@ -108,14 +111,14 @@ class AutoDown:
 
     distilled = {
       'updated': "-".join(self.now_ish),
-      'isFinal': true if finality else "",
+      'isFinal': finality or "",
       'top': tops,
       'by_county': {
-        COUNTY: {
-          'top': get_tops(county[COUNTY], tops),
-          'by_precinct': partition_by_precinct(prec[COUNTY], tops),
+        self.translator(cId): {
+          'top': get_tops(county[cId], tops),
+          'by_precinct': partition_by_precinct(prec[cId], tops),
         }
-        for COUNTY in county
+        for cId in county
       }
     }
     
@@ -127,8 +130,8 @@ class AutoDown:
 
     for source,term in [[county, 'results'],
                         [prec,   'precinct']]:
-      for County,j in source.items():
-        with open(self.repo_path + "/%s_%d.txt" % (term,County), 'w') as into:
+      for cId,j in source.items():
+        with open(self.repo_path + "/%s_%d.txt" % (term,cId), 'w') as into:
           json.dump(j, into)
     
     distilled = self.distill_results(state, county, prec, finality)
@@ -187,8 +190,10 @@ class AutoDown:
         
         print("Change of state")
         self.cache_it("state",state_results)
-        self.cache_it("counties",counties)
-        self.cache_it("precincts",precincts)
+        self.cache_it("counties", {self.translator(cId):stuff
+                                   for cId,stuff in counties.items()})
+        self.cache_it("precincts", {self.translator(cId):stuff
+                                   for cId,stuff in precincts.items()})
 
         finality = results_are_final(state_results, precincts)
         self.upload(state_results, counties, precincts, finality)
@@ -277,7 +282,13 @@ def run():
   repo = "./docs/2019/may/14/nc09/"
   cache_write = "./../cache/2019/may/14/"
   
-  AutoDown(election_day, nc09_counties, repo, cache_write).run()
+  AutoDown(
+    election_day,
+    nc09_counties,
+    repo,
+    translator=(lambda cId: nc09_counties[cId]),
+    cache=cache_write
+    ).run()
 
 def dry_run():
   election_day = "20190430"
@@ -307,4 +318,11 @@ def dry_run():
   #start simulation from 7:29PM, before polls even closed
   sim = FromCache(cache_read, datetime.datetime(2019, 4, 30, 19, 29))
   
-  AutoDown(election_day, nc03_counties, repo, cache=None, simulator=sim).run()
+  AutoDown(
+    election_day,
+    nc03_counties,
+    repo,
+    translator=(lambda cId: nc03_counties[cId]),
+    cache=None,
+    simulator=sim
+    ).run()
