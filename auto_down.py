@@ -38,18 +38,6 @@ def top2(list, pty):
                                    else -1)))
   return [top,sec['bnm']]
 
-def abstrindex(pty, tops, name):
-  try:
-    return tops[pty[0]].index(name)
-  except ValueError: #name not in list
-    return 2
-
-def is_unreported(list): #varies between cty and pct results
-  try: #only precinct results have 'sta'
-    return all(d['sta'] == 'Not Reported' for d in list)
-  except KeyError: #but county results have 'prt'
-    return all(str(d['prt']) == '0' for d in list)
-
 class AutoDown:
   
   def __init__(
