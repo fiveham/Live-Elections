@@ -25,7 +25,7 @@ def intervals():
 
 def top1(list, pty, test=None):
   if test is None:
-    test = lambda dic : d['pty'] == pty
+    test = lambda dic : dic['pty'] == pty
   top = max(list, key=(lambda d : (int(d['vct'])
                                    if test(d)
                                    else -1)))
