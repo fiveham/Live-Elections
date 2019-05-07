@@ -34,8 +34,8 @@ def top1(list, pty, test=None):
 def top2(list, pty):
   top = top1(list, pty)
   sec = max(list, key=(lambda d : (int(d['vct'])
-                                    if (d['bnm'] != top and d['pty'] == pty
-                                    else -1)))
+                                   if d['bnm'] != top and d['pty'] == pty
+                                   else -1)))
   return [top,sec['bnm']]
 
 def abstrindex(pty, tops, name):
