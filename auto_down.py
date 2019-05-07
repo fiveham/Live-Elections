@@ -242,7 +242,7 @@ class AutoDown:
       for interval in intervals():
         m = now_tuple()[-1]
         if m != prev_minute:
-          print("Doing it again: " + m)
+          print("Doing it again: " + str(m))
           break #out of for loop, repeating while True loop
         time.sleep(interval)
 
