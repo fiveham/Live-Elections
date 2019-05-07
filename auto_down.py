@@ -94,13 +94,13 @@ class AutoDown:
     self.now_ish = None
   
   
-  def cache_it(self, label, json):
+  def cache_it(self, label, j):
     if not self.cache_path:
       return
     content = tuple(label) + self.now_ish
     with open(self.cache_path +
               '%s_%d-%d-%d-%d-%d.txt' % content, 'w') as into:
-      into.write(str(json)+'\n')
+      json.dump(j, into)
 
   def distill_results(self, state, county, prec, finality):
     tops = {
@@ -123,33 +123,34 @@ class AutoDown:
     }
     
     return distilled
-  
-  def upload(self, state, county, prec, finality):
-    with open(self.repo_path + "/results_0.txt", 'w') as into:
-      json.dump(state, into)
 
-    for source,term in [[county, 'results'],
-                        [prec,   'precinct']]:
-      for cId,j in source.items():
-        with open(self.repo_path + "/%s_%d.txt" % (term,cId), 'w') as into:
-          json.dump(j, into)
+  def save_it(self, state, county, prec, finality):
+##    with open(self.repo_path + '/results_0.txt', 'w') as into:
+##      json.dump(state, into)
+##
+##    for source,term in [[county, 'results'],
+##                        [prec,   'precinct']]:
+##      for cId,j in source.items():
+##        with open(self.repo_path + '/%s_%d.txt' % (term,cId), 'w') as into:
+##          json.dump(j, into)
     
     distilled = self.distill_results(state, county, prec, finality)
-    with open(self.repo_path + "/summary.txt", 'w') as into:
+    with open(self.repo_path + '/summary.txt', 'w') as into:
       json.dump(distilled, into)
+  
+  def push_it(self):
+    subprocess.run("git add .".split(), cwd=self.repo_path)
     
-    subprocess.run("git add .".split(),
-                   cwd=self.repo_path)
-    subprocess.run(
-        ['git',
-         'commit',
-         '-m',
-         "upload %d-%d-%d-%d-%d results" % self.now_ish],
-        cwd=self.repo_path)
-    subprocess.run(
-        "git push origin master".split(),
-        cwd=self.repo_path)
-
+    commit_msg = 'upload %d-%d-%d-%d-%d results'%self.now_ish
+    commit_cmd = 'git commit -m'.split() + [commit_msg]
+    subprocess.run(commit_cmd, cwd=self.repo_path)
+    
+    subprocess.run('git push origin master'.split(), cwd=self.repo_path)
+  
+  def upload(self, state, county, prec, finality):
+    self.save_it(self, state, county, prec, finality)
+    self.push_it()
+  
   def fetch(self, label, countyID, now_ish):
     y,l,d,h,m = now_ish
     return requests.get(
@@ -189,7 +190,7 @@ class AutoDown:
         precincts = {countyId:self.getter.get_precincts(countyId, self.now_ish)
                      for countyId in self.countyIDs}
         
-        self.cache_it("state",state_results)
+        self.cache_it("state", state_results)
         self.cache_it("counties", {self.translator(cId):stuff
                                    for cId,stuff in counties.items()})
         self.cache_it("precincts", {self.translator(cId):stuff
@@ -199,20 +200,23 @@ class AutoDown:
         self.upload(state_results, counties, precincts, finality)
 
       finality = (finality
-                  if finality is not None
+                  if finality is not None #Do not rerun if finality is False
+                  #If state results unchanged, precincts not checked in function
                   else results_are_final(state_results, precincts))
       if finality:
         print("All precincts reported. Done.")
         return
-      
+
+      #Wait 10s twice, 8s twice, etc. until 2s each time.
+      #Once you're in the next minute, loop back around.
       for interval in intervals():
         m = now_tuple()[-1]
         if m != prev_minute:
           print("Doing it again: " + m)
-          break
+          break #out of for loop, repeating while True loop
         time.sleep(interval)
 
-#TODO put in actual documentation describing what each parameter does
+#TODO put in actual documentation describing what each __init__ parameter does
 class FromCache:
   def __init__(self, cache_dir, sim_start, translator=(lambda cId : cId)):
     self.cache_dir = cache_dir if cache_dir.endswith('/') else cache_dir+'/'
