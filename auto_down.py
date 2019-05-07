@@ -123,7 +123,7 @@ class AutoDown:
       'top': tops,
       'by_county': {
         self.translator(cId): {
-          'top': get_tops(county[cId], tops),
+          'top': self.get_tops(county[cId], tops),
           'by_precinct': self.partition_by_precinct(prec[cId], tops),
         }
         for cId in county
