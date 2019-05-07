@@ -182,13 +182,13 @@ class AutoDown:
       if state_results != prev_state_results:
         prev_state_results = state_results
         self.now_ish = right_now_ish
-        
-        counties = {county:self.getter.get_county(county, self.now_ish)
-                    for county in self.countyIDs}
-        precincts = {county:self.getter.get_precincts(county, self.now_ish)
-                     for county in self.countyIDs}
-        
         print("Change of state")
+        
+        counties = {countyId:self.getter.get_county(countyId, self.now_ish)
+                    for countyId in self.countyIDs}
+        precincts = {countyId:self.getter.get_precincts(countyId, self.now_ish)
+                     for countyId in self.countyIDs}
+        
         self.cache_it("state",state_results)
         self.cache_it("counties", {self.translator(cId):stuff
                                    for cId,stuff in counties.items()})
@@ -212,6 +212,7 @@ class AutoDown:
           break
         time.sleep(interval)
 
+#TODO put in actual documentation describing what each parameter does
 class FromCache:
   def __init__(self, cache_dir, sim_start, translator=(lambda cId : cId)):
     self.cache_dir = cache_dir if cache_dir.endswith('/') else cache_dir+'/'
@@ -222,15 +223,23 @@ class FromCache:
 
     self.translator = translator
     
-    #The actual moment in time when this simulation begins running
+    #The actual moment in time when this simulation begins running.
+    #This will be set when any of the three interface methods is first called.
     self.op_start = None 
-    
+
+    #Identify each minute described in the cache, and map from each label to
+    #a sorted list of the minutes for which there exists a file matching that
+    #label.
     self.cache_minutes = {
         label:sorted(tuple(int(n)
                            for n in file[1+file.index('_'):-4].split('-'))
                      for file in os.listdir(self.cache_dir)
                      if file.startswith(label))
         for label in ('state','counties','precincts')}
+
+    #cache key and value for json-loading hard drive cache files
+    self.run_cache_label = None
+    self.run_cache_value = None
   
   def simulation_moment(self, now_ish):
     now = datetime.datetime( *now_ish )
@@ -245,28 +254,64 @@ class FromCache:
       return next(iter(minute
                        for minute in reversed(self.cache_minutes[label])
                        if minute < sim_moment),
+                  #if simulation moment precedes all results, use first results
                   next(iter(self.cache_minutes[label])))
   
   def set_op_start(self, now_ish):
     self.op_start = self.op_start or datetime.datetime( *now_ish )
   
   def get_from_cache(self, label, now_ish):
+    if label == self.run_cache_label:
+      return self.run_cache_value
+    
     self.set_op_start(now_ish)
     simmom = self.simulation_moment(now_ish)
+
+    #if there's no cache result at simmom exactly, then retrieve the cache
+    #result from the most recent prior minute, since that's what would have
+    #been available in while running the script for real during the election
+    #night.
     cache_moment = self.before(label, simmom)
     with open(
         self.cache_dir + label + "_%d-%d-%d-%d-%d.txt" % cache_moment,
         'r') as outof:
-      return json.load(outof)
-  
+      val = json.load(outof)
+      self.run_cache_label = label
+      self.run_cache_value = val
+      return val
+
+  #Return statements for get_county and get_precincts end with
+  #[self.translator(countyId)] because the cache files use county names (in
+  #all-caps) as human-readable identifiers for counties while the in-memory
+  #data structures use int county ID numbers as identifiers instead. ID numbers
+  #are used during the non-human-readable parts of the process because the
+  #files that need to be downloaded from the NSCBE (during non-simulated runs)
+  #use number IDs for counties. In order to make correct get-requests for those
+  #files, we have to either use county ID numbers internally and stringify them
+  #in the requested file names or use county names and translate them into
+  #ID numbers when it's time to make a request.
+  #Part of this project used to be a plan to simply save, commit, and push files
+  #from the NCSBE to Github, using one local machine as a mirror to just bounce
+  #the files onto the same domain as the live map page. Saving those files with
+  #the same name structure as they had on the NCSBE system, using county ID
+  #numbers, would be easier using ID numbers internally rather than potentially
+  #having to go from name to number twice or more depending on how the local
+  #file-saving code ultimately ended up structured. Even worse, converting the
+  #name to a number just once and then passing that number around as a parameter
+  #through several function calls would require adding a lot of messiness to the
+  #code. Using a number ID for each county internally was simply the cleanest of
+  #several branching options.
+  #Aside from the number ID issues, the return statement needs to return only
+  #the info for a single county, but the cache results store all counties' info
+  #together.
   def get_county(self, countyID, now_ish):
     return self.get_from_cache('counties', now_ish)[self.translator(countyId)]
   
-  def get_state_results(self, now_ish):
-    return self.get_from_cache('state', now_ish)
-  
   def get_precincts(self, countyID, now_ish):
     return self.get_from_cache('precincts', now_ish)[self.translator(countyId)]
+
+  def get_state_results(self, now_ish):
+    return self.get_from_cache('state', now_ish)
 
 #Fetch data at the statewide level for the election of interest.
 #If all precincts have reported and results are final, exit
