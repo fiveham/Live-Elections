@@ -125,14 +125,14 @@ class AutoDown:
     return distilled
 
   def save_it(self, state, county, prec, finality):
-##    with open(self.repo_path + '/results_0.txt', 'w') as into:
-##      json.dump(state, into)
-##
-##    for source,term in [[county, 'results'],
-##                        [prec,   'precinct']]:
-##      for cId,j in source.items():
-##        with open(self.repo_path + '/%s_%d.txt' % (term,cId), 'w') as into:
-##          json.dump(j, into)
+    with open(self.repo_path + '/results_0.txt', 'w') as into:
+      json.dump(state, into)
+
+    for source,term in [[county, 'results'],
+                        [prec,   'precinct']]:
+      for cId,j in source.items():
+        with open(self.repo_path + '/%s_%d.txt' % (term,cId), 'w') as into:
+          json.dump(j, into)
     
     distilled = self.distill_results(state, county, prec, finality)
     with open(self.repo_path + '/summary.txt', 'w') as into:
@@ -148,8 +148,13 @@ class AutoDown:
     subprocess.run('git push'.split(), cwd=self.repo_path)
   
   def upload(self, state, county, prec, finality):
-    self.save_it(self, state, county, prec, finality)
-    self.push_it()
+    #TEMP don't actually save or push. Just create distillation and show it
+    #self.save_it(self, state, county, prec, finality)
+    #self.push_it()
+    distilled = self.distill_results(state, county, prec, finality)
+    print()
+    print(distilled)
+    print()
   
   def fetch(self, label, countyID, now_ish):
     y,l,d,h,m = now_ish
