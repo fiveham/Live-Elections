@@ -24,14 +24,14 @@ def intervals():
     yield 2
 
 def top1(list, pty):
-  top = max(list, key=(lambda d : (d['vct']
+  top = max(list, key=(lambda d : (int(d['vct'])
                                     if d['pty'] == pty
                                     else -1)))
   return top['bnm']
 
 def top2(list, pty):
   top = top1(list,pty)
-  sec = max(list, key=(lambda d : (d['vct']
+  sec = max(list, key=(lambda d : (int(d['vct'])
                                     if d['bnm'] != top and d['pty'] == pty
                                     else -1)))
   return [top,sec['bnm']]
@@ -356,7 +356,7 @@ def run():
     nc09_counties,
     repo,
     translator=(lambda cId: nc09_counties[cId].upper()),
-    cache=cache_write
+    cache_path=cache_write
     ).run()
 
 def dry_run():
@@ -388,7 +388,7 @@ def dry_run():
   #start simulation from 7:29PM, before polls even closed
   sim = FromCache(
     cache_read,
-    datetime.datetime(2019, 4, 30, 19, 29),
+    datetime.datetime(2019, 4, 30, 19, 27),
     translator=trans)
   
   AutoDown(
@@ -396,6 +396,6 @@ def dry_run():
     nc03_counties,
     repo,
     translator=trans,
-    cache=None,
+    cache_path=None,
     simulator=sim
     ).run()
