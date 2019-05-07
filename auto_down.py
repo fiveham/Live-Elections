@@ -145,7 +145,7 @@ class AutoDown:
     commit_cmd = 'git commit -m'.split() + [commit_msg]
     subprocess.run(commit_cmd, cwd=self.repo_path)
     
-    subprocess.run('git push origin master'.split(), cwd=self.repo_path)
+    subprocess.run('git push'.split(), cwd=self.repo_path)
   
   def upload(self, state, county, prec, finality):
     self.save_it(self, state, county, prec, finality)
@@ -156,6 +156,17 @@ class AutoDown:
     return requests.get(
         self.base_url + label + '_%d.txt?v=%d-%d-%d' % (countyID,d,h,m)
         ).json()
+
+  #TODO check whethere there even are changes to add/commit/push first
+  def sync(self):
+    subprocess.run("git add .".split(), cwd=self.repo_path)
+    
+    commit_msg = 'handle changes before autoloading'
+    commit_cmd = 'git commit -m'.split() + [commit_msg]
+    subprocess.run(commit_cmd, cwd=self.repo_path)
+    
+    subprocess.run('git pull'.split(), cwd=self.repo_path)
+    subprocess.run('git push'.split(), cwd=self.repo_path)
   
   #method for simulator
   def get_county(self, countyID, now_ish):
@@ -171,6 +182,8 @@ class AutoDown:
 
   #TODO make this thing shut off after midnight because that's too long
   def run(self):
+    #self.sync()
+    
     prev_state_results = None
     
     while True:
