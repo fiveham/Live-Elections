@@ -110,7 +110,7 @@ class AutoDown:
     }
 
     distilled = {
-      'updated': "-".join(self.now_ish),
+      'updated': "-".join(str(x) for x in self.now_ish),
       'isFinal': finality or "",
       'top': tops,
       'by_county': {
