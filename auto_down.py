@@ -162,7 +162,7 @@ class AutoDown:
     #self.push_it()
     distilled = self.distill_results(state, county, prec, finality)
     print()
-    print(distilled)
+    print(str(distilled)[:1000])
     print()
   
   def fetch(self, label, countyID, now_ish):
@@ -229,7 +229,9 @@ class AutoDown:
 
         finality = results_are_final(state_results, precincts)
         self.upload(state_results, counties, precincts, finality)
-
+      else:
+        print('Same state results.')
+      
       finality = (finality
                   if finality is not None #Do not rerun if finality is False
                   #If state results unchanged, precincts not checked in function
@@ -240,6 +242,7 @@ class AutoDown:
 
       #Wait 10s twice, 8s twice, etc. until 2s each time.
       #Once you're in the next minute, loop back around.
+      print('waiting till next min')
       for interval in intervals():
         m = now_tuple()[-1]
         if m != prev_minute:
@@ -301,19 +304,27 @@ class FromCache:
       return self.run_cache_value
     
     simmom = self.simulation_moment(now_ish)
+    print("Sim moment  : "+str(simmom))
 
     #if there's no cache result at simmom exactly, then retrieve the cache
     #result from the most recent prior minute, since that's what would have
     #been available in while running the script for real during the election
     #night.
     cache_moment = self.before(label, simmom)
+    print("cache moment: "+str(cache_moment))
+
+    val = None
     with open(
         self.cache_dir + label + "_%d-%d-%d-%d-%d.txt" % cache_moment,
         'r') as outof:
       val = json.load(outof)
-      self.run_cache_label = label
-      self.run_cache_value = val
-      return val
+    
+    self.run_cache_label, self.run_cache_value = (
+      (None,None)
+      if label == 'state'
+      else [label,val])
+    
+    return val
 
   #Return statements for get_county and get_precincts end with
   #[self.translator(countyId)] because the cache files use county names (in
@@ -346,6 +357,7 @@ class FromCache:
     return self.get_from_cache('precincts', now_ish)[self.translator(countyId)]
 
   def get_state_results(self, now_ish):
+    print('in get_state_results')
     return self.get_from_cache('state', now_ish)
 
 #Fetch data at the statewide level for the election of interest.
@@ -401,7 +413,7 @@ def dry_run():
   #start simulation from 7:29PM, before polls even closed
   sim = FromCache(
     cache_read,
-    datetime.datetime(2019, 4, 30, 19, 27),
+    datetime.datetime(2019, 4, 30, 19, 30),
     translator=trans)
   
   AutoDown(
