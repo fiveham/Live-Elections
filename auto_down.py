@@ -192,7 +192,7 @@ class AutoDown:
     prev_state_results = None
     
     while True:
-      right_now_ish = now_tuple())
+      right_now_ish = now_tuple()
       prev_minute = right_now_ish[-1]
       
       state_results = self.getter.get_state_results(right_now_ish)
