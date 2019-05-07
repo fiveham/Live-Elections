@@ -23,13 +23,13 @@ def intervals():
   while True:
     yield 2
 
-def top1(list, pty, test=None):
+def top1(list, pty, test=None, post=(lambda x: x['bnm'])):
   if test is None:
     test = lambda dic : dic['pty'] == pty
   top = max(list, key=(lambda d : (int(d['vct'])
                                    if test(d)
                                    else -1)))
-  return top['bnm']
+  return post(top)
 
 def top2(list, pty):
   top = top1(list, pty)
@@ -48,7 +48,7 @@ def is_unreported(list): #varies between cty and pct results
   try: #only precinct results have 'sta'
     return all(d['sta'] == 'Not Reported' for d in list)
   except KeyError: #but county results have 'prt'
-    return all(d['prt'] == '0' for d in list) #XXX not sure of type of d['prt']
+    return all(str(d['prt']) == '0' for d in list)
 
 class AutoDown:
   
@@ -86,16 +86,29 @@ class AutoDown:
       json.dump(j, into)
 
   def get_tops(self, list, tops):
-    if is_unreported(list):
-      return {"D": -1, "L": -1, "R": -1}
-    else:
-      return {pty[0]:abstrindex(
-        pty,
-        tops,
-        top1(list,
-             pty,
-             test=(lambda dic : dic['bnm'] in self.names_by_party[pty])))
+    #partition list by party
+    result = {pty:[d
+                   for d in list
+                   if d['bnm'] in self.names_by_party[pty]]
               for pty in ("DEM",'LIB','REP')}
+    topdic = {}
+    for pty in result:
+      t = top1(
+        list,
+        pty,
+        test=(lambda dic : dic['bnm'] in self.names_by_party[pty]),
+        post=(lambda x : x))
+      p = pty[0]
+      top2p = tops[p]
+      name = t['bnm']
+      if t['vct'] == '0':
+        topdic[p] = -1
+      else:
+        try:
+          topdic[p] = top2p.index(name)
+        except ValueError: #name not in list
+          topdic[p] = 2
+    return topdic
   
   def partition_by_precinct(self, county_results_by_precinct, tops):
     result = {d['aid']:[] for d in county_results_by_precinct}
