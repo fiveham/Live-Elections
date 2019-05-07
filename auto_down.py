@@ -283,10 +283,10 @@ class FromCache:
     self.op_start = self.op_start or datetime.datetime( *now_ish )
   
   def get_from_cache(self, label, now_ish):
+    self.set_op_start(now_ish)
     if label == self.run_cache_label:
       return self.run_cache_value
     
-    self.set_op_start(now_ish)
     simmom = self.simulation_moment(now_ish)
 
     #if there's no cache result at simmom exactly, then retrieve the cache
