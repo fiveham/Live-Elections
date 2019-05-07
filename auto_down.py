@@ -23,16 +23,18 @@ def intervals():
   while True:
     yield 2
 
-def top1(list, pty):
+def top1(list, pty, test=None):
+  if test is None:
+    test = lambda dic : d['pty'] == pty
   top = max(list, key=(lambda d : (int(d['vct'])
-                                    if d['pty'] == pty
-                                    else -1)))
+                                   if test(d)
+                                   else -1)))
   return top['bnm']
 
 def top2(list, pty):
-  top = top1(list,pty)
+  top = top1(list, pty)
   sec = max(list, key=(lambda d : (int(d['vct'])
-                                    if d['bnm'] != top and d['pty'] == pty
+                                    if (d['bnm'] != top and d['pty'] == pty
                                     else -1)))
   return [top,sec['bnm']]
 
@@ -47,26 +49,6 @@ def is_unreported(list): #varies between cty and pct results
     return all(d['sta'] == 'Not Reported' for d in list)
   except KeyError: #but county results have 'prt'
     return all(d['prt'] == '0' for d in list) #XXX not sure of type of d['prt']
-
-def get_tops(list, tops):
-  if is_unreported(list):
-    return {"D": -1, "L": -1, "R": -1}
-  else:
-    return {pty[0]:abstrindex(pty,tops,top1(list,pty))
-            for pty in ("DEM",'LIB','REP')}
-
-def partition_by_precinct(county_results_by_precinct, tops):
-  result = {d['aid']:[] for d in county_results_by_precinct}
-  for d in county_results_by_precinct:
-    precinct_name = d['aid']
-    result[precinct_name].append(d)
-  
-  for precinct_name in result:
-    prec_el_results = result[precinct_name]
-    g = get_tops(prec_el_results, tops)
-    d = {'top': g}
-    result[precinct_name] = d
-  return result
 
 class AutoDown:
   
@@ -92,6 +74,7 @@ class AutoDown:
                        else cache_path)
     self.getter = simulator or self
     self.now_ish = None
+    self.names_by_party = None
   
   
   def cache_it(self, label, j):
@@ -102,6 +85,31 @@ class AutoDown:
               '%s_%d-%d-%d-%d-%d.txt' % content, 'w') as into:
       json.dump(j, into)
 
+  def get_tops(self, list, tops):
+    if is_unreported(list):
+      return {"D": -1, "L": -1, "R": -1}
+    else:
+      return {pty[0]:abstrindex(
+        pty,
+        tops,
+        top1(list,
+             pty,
+             test=(lambda dic : dic['bnm'] in self.names_by_party[pty])))
+              for pty in ("DEM",'LIB','REP')}
+  
+  def partition_by_precinct(self, county_results_by_precinct, tops):
+    result = {d['aid']:[] for d in county_results_by_precinct}
+    for d in county_results_by_precinct:
+      precinct_name = d['aid']
+      result[precinct_name].append(d)
+    
+    for precinct_name in result:
+      prec_el_results = result[precinct_name]
+      g = self.get_tops(prec_el_results, tops)
+      d = {'top': g}
+      result[precinct_name] = d
+    return result
+  
   def distill_results(self, state, county, prec, finality):
     tops = {
       'D': top2(state, 'DEM'),
@@ -116,7 +124,7 @@ class AutoDown:
       'by_county': {
         self.translator(cId): {
           'top': get_tops(county[cId], tops),
-          'by_precinct': partition_by_precinct(prec[cId], tops),
+          'by_precinct': self.partition_by_precinct(prec[cId], tops),
         }
         for cId in county
       }
@@ -196,6 +204,10 @@ class AutoDown:
       prev_minute = right_now_ish[-1]
       
       state_results = self.getter.get_state_results(right_now_ish)
+      self.names_by_party = (
+          self.names_by_party or
+          {party:[e['bnm'] for e in state_results]
+           for party in {d['pty'] for d in state_results}})
       precincts = None
       finality = None
       if state_results != prev_state_results:
