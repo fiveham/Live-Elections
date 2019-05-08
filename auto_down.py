@@ -207,7 +207,6 @@ class AutoDown:
     return {countyId:part_getter(countyId, self.now_ish)
             for countyId in self.countyIDs}
   
-  #TODO make this thing shut off after midnight because that's too long
   def run(self):
     #self.sync()
     
@@ -251,7 +250,7 @@ class AutoDown:
       if finality:
         print("All precincts reported. Done.")
         return
-      elif self.getter.lights_out():
+      elif self.getter.lights_out(self.now_ish):
         print("Terminating because this has just gone on too long.")
         return
 
@@ -264,7 +263,7 @@ class AutoDown:
           print()
           print('='*75)
           print("Doing it again: " + str(m))
-          break #out of for loop, repeating while True loop
+          break #out of for-loop, repeating while-loop
         time.sleep(interval)
 
 #TODO put in actual documentation describing what each __init__ parameter does
