@@ -127,7 +127,7 @@ class AutoDown:
     
     return distilled
 
-  def save_it(self, state, county, prec, finality):
+  def save_it(self, state, county, prec, is_final):
     with open(self.repo_path + '/results_0.txt', 'w') as into:
       json.dump(state, into)
 
@@ -137,7 +137,7 @@ class AutoDown:
         with open(self.repo_path + '/%s_%d.txt' % (term,cId), 'w') as into:
           json.dump(j, into)
     
-    distilled = self.distill_results(state, county, prec, finality)
+    distilled = self.distill_results(state, county, prec, is_final)
     with open(self.repo_path + '/summary.txt', 'w') as into:
       json.dump(distilled, into)
   
@@ -152,7 +152,7 @@ class AutoDown:
   
   def upload(self, state, county, prec, is_final):
     #TEMP don't actually save or push. Just create distillation and show it
-    #self.save_it(self, state, county, prec, finality)
+    #self.save_it(self, state, county, prec, is_final)
     #self.push_it()
     distilled = self.distill_results(state, county, prec, is_final)
     print()
@@ -229,7 +229,8 @@ class AutoDown:
 
         is_final = (state_results[0]['prt'] == state_results[0]['ptl'] and
                     all(all('final' in d['sta'].lower()
-                            for d in v)
+                            for d in v 
+                            if d['sta']) #Some records have 'sta' of ""
                         for v in precincts.values()))
         self.upload(state_results, counties, precincts, is_final)
 
