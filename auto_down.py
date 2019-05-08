@@ -19,10 +19,6 @@ def precinct_results_look_final(precinct_result_dict):
                  for d in v)
              for v in precinct_result_dict.values())
 
-def _results_are_final(state_result_list, precinct_result_dict):
-  return (state_results_look_final(state_result_list) and
-          precinct_results_look_final(precinct_result_dict))
-
 def intervals():
   for x in (10,8,6,4):
     yield x
@@ -203,6 +199,10 @@ class AutoDown:
   def get_precincts(self, countyID, now_ish):
     return self.fetch('precinct', countyID, now_ish)
 
+  def gen_dictable(self, part_getter):
+    return {countyId:part_getter(countyId, self.now_ish)
+            for countyId in self.countyIDs}
+  
   #TODO make this thing shut off after midnight because that's too long
   def run(self):
     #self.sync()
@@ -225,10 +225,8 @@ class AutoDown:
         self.now_ish = right_now_ish
         print("Change of state")
         
-        counties = {countyId:self.getter.get_county(countyId, self.now_ish)
-                    for countyId in self.countyIDs}
-        precincts = {countyId:self.getter.get_precincts(countyId, self.now_ish)
-                     for countyId in self.countyIDs}
+        counties = self.gen_dictable(self.getter.get_county)
+        precincts = self.gen_dictable(self.getter.get_precincts)
         
         self.cache_it("state", state_results)
         self.cache_it("counties", {self.translator(cId):stuff
@@ -241,13 +239,10 @@ class AutoDown:
         self.upload(state_results, counties, precincts, finality)
       else:
         print('Same state results.')
-        if state_results_look_final(state_results):
-          precincts = {countyId:self.getter.get_precincts(countyId,
-                                                          self.now_ish)
-                       for countyId in self.countyIDs}
+        finality = state_results_look_final(state_results)
+        if finality:
+          precincts = self.gen_dictable(self.getter.get_precincts)
           finality = precinct_results_look_final(precincts)
-        else:
-          finality = False
       
       if finality:
         print("All precincts reported. Done.")
