@@ -280,7 +280,7 @@ class FromCache:
         for label in ('state','counties','precincts')}
 
     #cache key and value for json-loading hard drive cache files
-    self.run_cache_label_now_ish = None
+    self.run_cache_label_time = None
     self.run_cache_value = None
   
   def simulation_moment(self, now_ish):
@@ -296,7 +296,7 @@ class FromCache:
       return next(iter(minute
                        for minute in reversed(self.cache_minutes[label])
                        if minute < sim_moment),
-                  #if simulation moment precedes all results, use first results
+                  #if simulation moment before all results, use earliest results
                   next(iter(self.cache_minutes[label])))
   
   def set_op_start(self, now_ish):
@@ -304,16 +304,16 @@ class FromCache:
   
   def get_from_cache(self, label, now_ish):
     self.set_op_start(now_ish)
-    if (label, now_ish) == self.run_cache_label_now_ish:
-      return self.run_cache_value
-    
     simmom = self.simulation_moment(now_ish)
-
     #if there's no cache result at simmom exactly, then retrieve the cache
     #result from the most recent prior minute, since that's what would have
     #been available in while running the script for real during the election
     #night.
     cache_moment = self.before(label, simmom)
+    
+    if (label, cache_moment) == self.run_cache_label_time:
+      return self.run_cache_value
+    
     print("Sim moment  : "+str(simmom)+'\t'+label)
     print("cache moment: "+str(cache_moment)+'\t'+label)
 
@@ -323,7 +323,7 @@ class FromCache:
         'r') as outof:
       val = json.load(outof)
     
-    self.run_cache_label_now_ish = (label, now_ish)
+    self.run_cache_label_time = (label, cache_moment)
     self.run_cache_value = val
     
     return val
