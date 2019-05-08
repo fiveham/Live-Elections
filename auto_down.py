@@ -4,17 +4,24 @@ import datetime
 import subprocess
 import json
 import os
+import random
 
 def now_tuple():
   now = datetime.datetime.now()
   return (now.year, now.month, now.day, now.hour, now.minute)
 
-def results_are_final(state_result_list, precinct_result_dict):
+def state_results_look_final(state_result_list):
   sample = next(iter(state_result_list))
-  return (sample['prt'] == sample['ptl'] and 
-          all(all('final' in d['sta'].lower()
-                  for d in v)
-              for v in precinct_result_dict.values()))
+  return sample['prt'] == sample['ptl']
+
+def precinct_results_look_final(precinct_result_dict):
+  return all(all('final' in d['sta'].lower()
+                 for d in v)
+             for v in precinct_result_dict.values())
+
+def _results_are_final(state_result_list, precinct_result_dict):
+  return (state_results_look_final(state_result_list) and
+          precinct_results_look_final(precinct_result_dict))
 
 def intervals():
   for x in (10,8,6,4):
@@ -162,7 +169,9 @@ class AutoDown:
     #self.push_it()
     distilled = self.distill_results(state, county, prec, finality)
     print()
-    print(str(distilled)[:1000])
+    q = str(distilled)
+    i = random.randint(0,len(q)-1-500)
+    print(q[i:i+500])
     print()
   
   def fetch(self, label, countyID, now_ish):
@@ -227,15 +236,19 @@ class AutoDown:
         self.cache_it("precincts", {self.translator(cId):stuff
                                    for cId,stuff in precincts.items()})
 
-        finality = results_are_final(state_results, precincts)
+        finality = (state_results_look_final(state_results) and
+                    precinct_results_look_final(precincts))
         self.upload(state_results, counties, precincts, finality)
       else:
         print('Same state results.')
+        if state_results_look_final(state_results):
+          precincts = {countyId:self.getter.get_precincts(countyId,
+                                                          self.now_ish)
+                       for countyId in self.countyIDs}
+          finality = precinct_results_look_final(precincts)
+        else:
+          finality = False
       
-      finality = (finality
-                  if finality is not None #Do not rerun if finality is False
-                  #If state results unchanged, precincts not checked in function
-                  else results_are_final(state_results, precincts))
       if finality:
         print("All precincts reported. Done.")
         return
@@ -246,6 +259,8 @@ class AutoDown:
       for interval in intervals():
         m = now_tuple()[-1]
         if m != prev_minute:
+          print()
+          print('='*75)
           print("Doing it again: " + str(m))
           break #out of for loop, repeating while True loop
         time.sleep(interval)
@@ -304,14 +319,14 @@ class FromCache:
       return self.run_cache_value
     
     simmom = self.simulation_moment(now_ish)
-    print("Sim moment  : "+str(simmom))
 
     #if there's no cache result at simmom exactly, then retrieve the cache
     #result from the most recent prior minute, since that's what would have
     #been available in while running the script for real during the election
     #night.
     cache_moment = self.before(label, simmom)
-    print("cache moment: "+str(cache_moment))
+    print("Sim moment  : "+str(simmom)+'\t'+label)
+    print("cache moment: "+str(cache_moment)+'\t'+label)
 
     val = None
     with open(
@@ -357,7 +372,7 @@ class FromCache:
     return self.get_from_cache('precincts', now_ish)[self.translator(countyId)]
 
   def get_state_results(self, now_ish):
-    print('in get_state_results')
+    #print('in get_state_results')
     return self.get_from_cache('state', now_ish)
 
 #Fetch data at the statewide level for the election of interest.
