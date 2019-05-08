@@ -199,6 +199,10 @@ class AutoDown:
   def get_precincts(self, countyID, now_ish):
     return self.fetch('precinct', countyID, now_ish)
 
+  #method for simulator
+  def lights_out(self, now_ish):
+    return now_ish[-2] == 0 #If the operating "now" minute is 12:XX a.m.
+
   def gen_dictable(self, part_getter):
     return {countyId:part_getter(countyId, self.now_ish)
             for countyId in self.countyIDs}
@@ -246,6 +250,9 @@ class AutoDown:
       
       if finality:
         print("All precincts reported. Done.")
+        return
+      elif self.getter.lights_out():
+        print("Terminating because this has just gone on too long.")
         return
 
       #Wait 10s twice, 8s twice, etc. until 2s each time.
@@ -363,11 +370,13 @@ class FromCache:
   
   def get_precincts(self, countyId, now_ish):
     return self.get_from_cache('precincts', now_ish)[self.translator(countyId)]
-
+  
   def get_state_results(self, now_ish):
-    #print('in get_state_results')
     return self.get_from_cache('state', now_ish)
-
+  
+  def lights_out(self, now_ish):
+    return False #simulator shuts off when the hard drive cache is done.
+  
 #Fetch data at the statewide level for the election of interest.
 #If all precincts have reported and results are final, exit
 def run():
