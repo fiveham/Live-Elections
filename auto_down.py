@@ -10,15 +10,6 @@ def now_tuple():
   now = datetime.datetime.now()
   return (now.year, now.month, now.day, now.hour, now.minute)
 
-def state_results_look_final(state_result_list):
-  sample = next(iter(state_result_list))
-  return sample['prt'] == sample['ptl']
-
-def precinct_results_look_final(precinct_result_dict):
-  return all(all('final' in d['sta'].lower()
-                 for d in v)
-             for v in precinct_result_dict.values())
-
 def intervals():
   for x in (10,8,6,4):
     yield x
@@ -114,7 +105,7 @@ class AutoDown:
       result[precinct_name] = d
     return result
   
-  def distill_results(self, state, county, prec, finality):
+  def distill_results(self, state, county, prec, is_final):
     tops = {
       'D': top2(state, 'DEM'),
       'L': top2(state, 'LIB'),
@@ -123,7 +114,7 @@ class AutoDown:
 
     distilled = {
       'updated': "-".join(str(x) for x in self.now_ish),
-      'isFinal': finality or "",
+      'isFinal': is_final or "",
       'top': tops,
       'by_county': {
         self.translator(cId): {
@@ -159,11 +150,11 @@ class AutoDown:
     
     subprocess.run('git push'.split(), cwd=self.repo_path)
   
-  def upload(self, state, county, prec, finality):
+  def upload(self, state, county, prec, is_final):
     #TEMP don't actually save or push. Just create distillation and show it
     #self.save_it(self, state, county, prec, finality)
     #self.push_it()
-    distilled = self.distill_results(state, county, prec, finality)
+    distilled = self.distill_results(state, county, prec, is_final)
     print()
     q = str(distilled)
     i = random.randint(0,len(q)-1-500)
@@ -222,7 +213,6 @@ class AutoDown:
           {party:[e['bnm'] for e in state_results]
            for party in {d['pty'] for d in state_results}})
       precincts = None
-      finality = None
       if state_results != prev_state_results:
         prev_state_results = state_results
         self.now_ish = right_now_ish
@@ -237,34 +227,31 @@ class AutoDown:
         self.cache_it("precincts", {self.translator(cId):stuff
                                    for cId,stuff in precincts.items()})
 
-        finality = (state_results_look_final(state_results) and
-                    precinct_results_look_final(precincts))
-        self.upload(state_results, counties, precincts, finality)
-      else:
-        print('Same state results.')
-        finality = state_results_look_final(state_results)
-        if finality:
-          precincts = self.gen_dictable(self.getter.get_precincts)
-          finality = precinct_results_look_final(precincts)
+        is_final = (state_results[0]['prt'] == state_results[0]['ptl'] and
+                    all(all('final' in d['sta'].lower()
+                            for d in v)
+                        for v in precincts.values()))
+        self.upload(state_results, counties, precincts, is_final)
+
+        if is_final:
+          print("All precincts reported. Done.")
+          return
       
-      if finality:
-        print("All precincts reported. Done.")
-        return
-      elif self.getter.lights_out(self.now_ish):
+      if self.getter.lights_out(self.now_ish):
         print("Terminating because this has just gone on too long.")
         return
-
-      #Wait 10s twice, 8s twice, etc. until 2s each time.
-      #Once you're in the next minute, loop back around.
-      print('waiting till next min')
-      for interval in intervals():
-        m = now_tuple()[-1]
-        if m != prev_minute:
-          print()
-          print('='*75)
-          print("Doing it again: " + str(m))
-          break #out of for-loop, repeating while-loop
-        time.sleep(interval)
+      else:
+        #Wait 10s twice, 8s twice, etc. until 2s each time.
+        #Once you're in the next minute, loop back around.
+        print('waiting till next min')
+        for interval in intervals():
+          m = now_tuple()[-1]
+          if m != prev_minute:
+            print()
+            print('='*75)
+            print("Doing it again: " + str(m))
+            break #out of for-loop, repeating while-loop
+          time.sleep(interval)
 
 #TODO put in actual documentation describing what each __init__ parameter does
 class FromCache:
