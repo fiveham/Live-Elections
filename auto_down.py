@@ -179,16 +179,20 @@ class AutoDown:
     subprocess.run('git push'.split(), cwd=self.repo_path)
   
   #method for simulator
-  def get_county(self, countyID, now_ish):
-    return self.fetch('results', countyID, now_ish)
+  def get_county(self, countyId, now_ish):
+    return self.fetch('results', countyId, now_ish)
   
   #method for simulator
   def get_state_results(self, now_ish):
     return self.get_county(0, now_ish)
   
   #method for simulator
-  def get_precincts(self, countyID, now_ish):
-    return self.fetch('precinct', countyID, now_ish)
+  def get_precincts(self, countyId, now_ish):
+    return self.fetch('precinct', countyId, now_ish)
+
+  #method for simulator
+  def get_prec0(self, now_ish):
+    return self.get_precincts(0, now_ish)
 
   #method for simulator
   def lights_out(self, now_ish):
@@ -202,36 +206,40 @@ class AutoDown:
     #self.sync()
     
     prev_state_results = None
+    prev_prec0 = None
     
     while True:
       right_now_ish = now_tuple()
       prev_minute = right_now_ish[-1]
       
       state_results = self.getter.get_state_results(right_now_ish)
+      prec0 = self.getter.get_prec0(right_now_ish)
+      
       self.names_by_party = (
           self.names_by_party or
           {party:[e['bnm'] for e in state_results]
            for party in {d['pty'] for d in state_results}})
-      precincts = None
-      if state_results != prev_state_results:
-        prev_state_results = state_results
-        self.now_ish = right_now_ish
+      if state_results != prev_state_results or prec0 != prev_prec0:
         print("Change of state")
+        prev_state_results = state_results
+        prev_prec0 = prec0
+        
+        self.now_ish = right_now_ish
         
         counties = self.gen_dictable(self.getter.get_county)
         precincts = self.gen_dictable(self.getter.get_precincts)
         
         self.cache_it("state", state_results)
+        self.cache_it("precinct0", prec0)
         self.cache_it("counties", {self.translator(cId):stuff
                                    for cId,stuff in counties.items()})
         self.cache_it("precincts", {self.translator(cId):stuff
                                    for cId,stuff in precincts.items()})
 
-        is_final = (state_results[0]['prt'] == state_results[0]['ptl'] and
-                    all(all('final' in d['sta'].lower()
-                            for d in v 
-                            if d['sta']) #Some records have 'sta' of ""
-                        for v in precincts.values()))
+        is_final = all(all('final' in d[x].lower()
+                           for x in ('sta','cts'))
+                       for d in prec0)
+        
         self.upload(state_results, counties, precincts, is_final)
 
         if is_final:
@@ -277,11 +285,10 @@ class FromCache:
                            for n in file[1+file.index('_'):-4].split('-'))
                      for file in os.listdir(self.cache_dir)
                      if file.startswith(label))
-        for label in ('state','counties','precincts')}
+        for label in ('state','counties','precincts','precinct0')}
 
     #cache key and value for json-loading hard drive cache files
-    self.run_cache_label_time = None
-    self.run_cache_value = None
+    self.runtime_cache = {}
   
   def simulation_moment(self, now_ish):
     now = datetime.datetime( *now_ish )
@@ -311,8 +318,9 @@ class FromCache:
     #night.
     cache_moment = self.before(label, simmom)
     
-    if (label, cache_moment) == self.run_cache_label_time:
-      return self.run_cache_value
+    if (label in self.runtime_cache and
+        self.runtime_cache[label][0] == cache_moment):
+      return self.runtime_cache[label][1]
     
     print("Sim moment  : "+str(simmom)+'\t'+label)
     print("cache moment: "+str(cache_moment)+'\t'+label)
@@ -322,10 +330,7 @@ class FromCache:
         self.cache_dir + label + "_%d-%d-%d-%d-%d.txt" % cache_moment,
         'r') as outof:
       val = json.load(outof)
-    
-    self.run_cache_label_time = (label, cache_moment)
-    self.run_cache_value = val
-    
+    self.runtime_cache[label] = [cache_moment, val]
     return val
 
   #Return statements for get_county and get_precincts end with
@@ -360,6 +365,9 @@ class FromCache:
   
   def get_state_results(self, now_ish):
     return self.get_from_cache('state', now_ish)
+
+  def get_prec0(self, now_ish):
+    return self.get_from_cache('precinct0', now_ish)
   
   def lights_out(self, now_ish):
     return False #simulator shuts off when the hard drive cache is done.
