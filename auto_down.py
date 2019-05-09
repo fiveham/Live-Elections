@@ -217,8 +217,9 @@ class AutoDown:
       
       self.names_by_party = (
           self.names_by_party or
-          {party:[e['bnm'] for e in state_results]
+          {party:[e['bnm'] for e in state_results if e['pty'] == party]
            for party in {d['pty'] for d in state_results}})
+
       if state_results != prev_state_results or prec0 != prev_prec0:
         print("Change of state")
         prev_state_results = state_results
@@ -226,15 +227,15 @@ class AutoDown:
         
         self.now_ish = right_now_ish
         
-        counties = self.gen_dictable(self.getter.get_county)
+        counties  = self.gen_dictable(self.getter.get_county)
         precincts = self.gen_dictable(self.getter.get_precincts)
         
-        self.cache_it("state", state_results)
+        self.cache_it("state",     state_results)
         self.cache_it("precinct0", prec0)
-        self.cache_it("counties", {self.translator(cId):stuff
-                                   for cId,stuff in counties.items()})
+        self.cache_it("counties",  {self.translator(cId):stuff
+                                    for cId,stuff in counties.items()})
         self.cache_it("precincts", {self.translator(cId):stuff
-                                   for cId,stuff in precincts.items()})
+                                    for cId,stuff in precincts.items()})
 
         is_final = all(all('final' in d[x].lower()
                            for x in ('sta','cts'))
@@ -246,7 +247,7 @@ class AutoDown:
           print("All precincts reported. Done.")
           return
       
-      if self.getter.lights_out(self.now_ish):
+      if self.getter.lights_out(right_now_ish):
         print("Terminating because this has just gone on too long.")
         return
       else:
@@ -324,7 +325,7 @@ class FromCache:
     
     print("Sim moment  : "+str(simmom)+'\t'+label)
     print("cache moment: "+str(cache_moment)+'\t'+label)
-
+    
     val = None
     with open(
         self.cache_dir + label + "_%d-%d-%d-%d-%d.txt" % cache_moment,
