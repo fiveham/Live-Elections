@@ -141,10 +141,12 @@ class AutoDown:
     subprocess.run('git push'.split(), cwd=self.repo_path)
   
   def upload(self, state, county, prec, is_final):
-    #TEMP don't actually save or push. Just create distillation and show it
-    #self.save_it(self, state, county, prec, is_final)
-    #self.push_it()
     distilled = self.distill_results(state, county, prec, is_final)
+    #TEMP don't actually push. Just create, show, and save distillation
+    with open(self.repo_path + '/summary.txt', 'w') as into:
+      json.dump(distilled, into)
+    #self.push_it()
+    
     print()
     q = str(distilled)
     i = random.randint(0,len(q)-1-500)
