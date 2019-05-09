@@ -226,7 +226,7 @@ class AutoDown:
                        for d in prec0)
         
         self.upload(state_results, counties, precincts, is_final)
-
+        
         if is_final:
           print("All precincts reported. Done.")
           return
