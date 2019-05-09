@@ -349,10 +349,12 @@ class FromCache:
   #get_precincts need to return only the info for a single county, but the
   #cache results store all counties' info together.
   def get_county(self, countyId, now_ish):
-    return self.get_from_cache('counties', now_ish)[self.translator(countyId)]
+    return self.get_from_cache('counties',
+                               now_ish)[self.id_to_COUNTY[countyId]]
   
   def get_precincts(self, countyId, now_ish):
-    return self.get_from_cache('precincts', now_ish)[self.translator(countyId)]
+    return self.get_from_cache('precincts',
+                               now_ish)[self.id_to_COUNTY[countyId]]
   
   def get_state_results(self, now_ish):
     return self.get_from_cache('state', now_ish)
