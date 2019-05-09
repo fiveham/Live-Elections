@@ -419,7 +419,7 @@ def dry_run(sim_start=None):
   #start simulation from 7:29PM, before polls even closed
   sim = FromCache(
     cache_read,
-    default_sim_start or sim_start,
+    sim_start or default_sim_start,
     id_to_COUNTY)
   
   AutoDown(
