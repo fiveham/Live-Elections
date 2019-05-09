@@ -124,11 +124,6 @@ class AutoDown:
     
     return distilled
 
-  def save_it(self, state, county, prec, is_final):
-    distilled = self.distill_results(state, county, prec, is_final)
-    with open(self.repo_path + '/summary.txt', 'w') as into:
-      json.dump(distilled, into)
-  
   def push_it(self):
     subprocess.run(['git',
                     'add',
