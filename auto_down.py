@@ -125,10 +125,8 @@ class AutoDown:
     return distilled
 
   def push_it(self):
-    subprocess.run(['git',
-                    'add',
-                    self.repo_path + '/summary.txt'],
-                   cwd=self.repo_path)
+    subprocess.run('git add summary.txt'.split(), cwd=self.repo_path)
+
     commit_msg = 'result summary %d-%d-%d-%d-%d' % self.now_ish
     commit_cmd = 'git commit -m'.split() + [commit_msg]
     subprocess.run(commit_cmd, cwd=self.repo_path)
@@ -137,10 +135,9 @@ class AutoDown:
   
   def upload(self, state, county, prec, is_final):
     distilled = self.distill_results(state, county, prec, is_final)
-    #TEMP don't actually push. Just create, show, and save distillation
     with open(self.repo_path + '/summary.txt', 'w') as into:
       json.dump(distilled, into)
-    #self.push_it()
+    self.push_it()
     
     print()
     q = str(distilled)
@@ -236,6 +233,13 @@ class AutoDown:
       
       if self.getter.lights_out(right_now_ish):
         print("Terminating because this has just gone on too long.")
+        summary = None
+        with open(self.repo_path + '/summary.txt', 'r') as out:
+          summary = json.load(out)
+        summary['isFinal'] = "Terminated for time."
+        with open(self.repo_path + '/summary.txt', 'w') as into:
+          json.dump(summary, into)
+        self.push_it()
         return
       else:
         #Wait 10s twice, 8s twice, etc. until 2s each time.
