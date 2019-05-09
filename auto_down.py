@@ -37,9 +37,8 @@ class AutoDown:
   def __init__(
       self,
       date_string,
-      countyIDs,
+      id_to_COUNTY,
       repo_path,
-      translator=(lambda cId : cId),
       cache_path='./cache/',
       simulator=None):
     
@@ -48,9 +47,8 @@ class AutoDown:
                        "into that cache would be a bad idea."))
     #if cache_path is falsey, step-by-step results are not cached
     self.base_url = 'https://er.ncsbe.gov/enr/%s/data/' % date_string
-    self.countyIDs = list(countyIDs)
+    self.id_to_COUNTY = dict(id_to_COUNTY)
     self.repo_path = repo_path[:-1] if repo_path.endswith('/') else repo_path
-    self.translator = translator
     self.cache_path = ((cache_path + '/') 
                        if cache_path and not cache_path.endswith('/') 
                        else cache_path)
@@ -59,13 +57,12 @@ class AutoDown:
     self.names_by_party = None
   
   
-  def cache_it(self, label, j):
+  def cache_it(self, label, cache_me):
     if not self.cache_path:
       return
-    content = tuple(label) + self.now_ish
-    with open(self.cache_path +
-              '%s_%d-%d-%d-%d-%d.txt' % content, 'w') as into:
-      json.dump(j, into)
+    with open(self.cache_path + label +
+              '_%d-%d-%d-%d-%d.txt' % self.now_ish, 'w') as into:
+      json.dump(cache_me, into)
 
   def get_tops(self, list, tops):
     #partition list by party
@@ -111,13 +108,13 @@ class AutoDown:
       'L': top2(state, 'LIB'),
       'R': top2(state, 'REP')
     }
-
+    
     distilled = {
       'updated': "-".join(str(x) for x in self.now_ish),
       'isFinal': is_final or "",
       'top': tops,
       'by_county': {
-        self.translator(cId): {
+        self.id_to_COUNTY[cId]: {
           'top': self.get_tops(county[cId], tops),
           'by_precinct': self.partition_by_precinct(prec[cId], tops),
         }
@@ -128,23 +125,16 @@ class AutoDown:
     return distilled
 
   def save_it(self, state, county, prec, is_final):
-    with open(self.repo_path + '/results_0.txt', 'w') as into:
-      json.dump(state, into)
-
-    for source,term in [[county, 'results'],
-                        [prec,   'precinct']]:
-      for cId,j in source.items():
-        with open(self.repo_path + '/%s_%d.txt' % (term,cId), 'w') as into:
-          json.dump(j, into)
-    
     distilled = self.distill_results(state, county, prec, is_final)
     with open(self.repo_path + '/summary.txt', 'w') as into:
       json.dump(distilled, into)
   
   def push_it(self):
-    subprocess.run("git add .".split(), cwd=self.repo_path)
-    
-    commit_msg = 'upload %d-%d-%d-%d-%d results'%self.now_ish
+    subprocess.run(['git',
+                    'add',
+                    self.repo_path + '/summary.txt'],
+                   cwd=self.repo_path)
+    commit_msg = 'result summary %d-%d-%d-%d-%d' % self.now_ish
     commit_cmd = 'git commit -m'.split() + [commit_msg]
     subprocess.run(commit_cmd, cwd=self.repo_path)
     
@@ -167,7 +157,7 @@ class AutoDown:
         self.base_url + label + '_%d.txt?v=%d-%d-%d' % (countyID,d,h,m)
         ).json()
 
-  #TODO check whethere there even are changes to add/commit/push first
+  #TODO check whether there even are changes to add/commit/push first
   def sync(self):
     subprocess.run("git add .".split(), cwd=self.repo_path)
     
@@ -189,18 +179,18 @@ class AutoDown:
   #method for simulator
   def get_precincts(self, countyId, now_ish):
     return self.fetch('precinct', countyId, now_ish)
-
+  
   #method for simulator
   def get_prec0(self, now_ish):
     return self.get_precincts(0, now_ish)
-
+  
   #method for simulator
   def lights_out(self, now_ish):
     return now_ish[-2] == 0 #If the operating "now" minute is 12:XX a.m.
-
+  
   def gen_dictable(self, part_getter):
     return {countyId:part_getter(countyId, self.now_ish)
-            for countyId in self.countyIDs}
+            for countyId in self.id_to_COUNTY}
   
   def run(self):
     #self.sync()
@@ -232,9 +222,9 @@ class AutoDown:
         
         self.cache_it("state",     state_results)
         self.cache_it("precinct0", prec0)
-        self.cache_it("counties",  {self.translator(cId):stuff
+        self.cache_it("counties",  {self.id_to_COUNTY[cId]:stuff
                                     for cId,stuff in counties.items()})
-        self.cache_it("precincts", {self.translator(cId):stuff
+        self.cache_it("precincts", {self.id_to_COUNTY[cId]:stuff
                                     for cId,stuff in precincts.items()})
 
         is_final = all(all('final' in d[x].lower()
@@ -265,14 +255,14 @@ class AutoDown:
 
 #TODO put in actual documentation describing what each __init__ parameter does
 class FromCache:
-  def __init__(self, cache_dir, sim_start, translator=(lambda cId : cId)):
+  def __init__(self, cache_dir, sim_start, id_to_COUNTY):
     self.cache_dir = cache_dir if cache_dir.endswith('/') else cache_dir+'/'
     
     #When this simulation starts, it will pretend that that moment is the
     #moment represented by sim_start
     self.sim_start = sim_start
 
-    self.translator = translator
+    self.id_to_COUNTY = dict(id_to_COUNTY)
     
     #The actual moment in time when this simulation begins running.
     #This will be set when any of the three interface methods is first called.
@@ -335,15 +325,15 @@ class FromCache:
     return val
 
   #Return statements for get_county and get_precincts end with
-  #[self.translator(countyId)] because the cache files use county names (in
+  #[self.id_to_COUNTY[countyId]] because the cache files use county names (in
   #all-caps) as human-readable identifiers for counties while the in-memory
   #data structures use int county ID numbers as identifiers instead. ID numbers
   #are used during the non-human-readable parts of the process because the
   #files that need to be downloaded from the NSCBE (during non-simulated runs)
   #use number IDs for counties. In order to make correct get-requests for those
   #files, we have to either use county ID numbers internally and stringify them
-  #in the requested file names or use county names and translate them into
-  #ID numbers when it's time to make a request.
+  #in the requested file names or use county names internaly and translate them
+  #into ID numbers when it's time to make a request.
   #Part of this project used to be a plan to simply save, commit, and push files
   #from the NCSBE to Github, using one local machine as a mirror to just bounce
   #the files onto the same domain as the live map page. Saving those files with
@@ -355,9 +345,9 @@ class FromCache:
   #through several function calls would require adding a lot of messiness to the
   #code. Using a number ID for each county internally was simply the cleanest of
   #several branching options.
-  #Aside from the number ID issues, the return statement needs to return only
-  #the info for a single county, but the cache results store all counties' info
-  #together.
+  #Aside from the number ID issues, the return statements in get_county and
+  #get_precincts need to return only the info for a single county, but the
+  #cache results store all counties' info together.
   def get_county(self, countyId, now_ish):
     return self.get_from_cache('counties', now_ish)[self.translator(countyId)]
   
@@ -391,13 +381,12 @@ def run():
   
   AutoDown(
     election_day,
-    nc09_counties,
+    {i:c.upper() for i,c in nc09_counties.items()},
     repo,
-    translator=(lambda cId: nc09_counties[cId].upper()),
     cache_path=cache_write
     ).run()
 
-def dry_run():
+def dry_run(sim_start=None):
   election_day = "20190430"
   
   nc03_counties = {
@@ -421,19 +410,20 @@ def dry_run():
   
   repo = "./docs/2019/apr/30/nc03/"
   cache_read = "./../cache/2019/apr/30/"
-  trans = lambda cId: nc03_counties[cId].upper()
+
+  default_sim_start = datetime.datetime(2019, 4, 30, 19, 30)
+  id_to_COUNTY = {i:c.upper() for i,c in nc03_counties.items()}
   
   #start simulation from 7:29PM, before polls even closed
   sim = FromCache(
     cache_read,
-    datetime.datetime(2019, 4, 30, 19, 30),
-    translator=trans)
+    default_sim_start or sim_start,
+    id_to_COUNTY)
   
   AutoDown(
     election_day,
-    nc03_counties,
+    id_to_COUNTY,
     repo,
-    translator=trans,
     cache_path=None,
     simulator=sim
     ).run()
