@@ -125,6 +125,7 @@ class AutoDown:
     return distilled
 
   def push_it(self):
+    print("Pushing summary to github")
     subprocess.run('git add summary.txt'.split(), cwd=self.repo_path)
 
     commit_msg = 'result summary %d-%d-%d-%d-%d' % self.now_ish
