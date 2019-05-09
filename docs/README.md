@@ -1,7 +1,7 @@
 # Live-Elections
 This is where live election result updates from the NCSBE (and any other similar sources) will be uploaded to get around a lack of CORS so that maps in Elections can update live.
 
-[The current testing page is here.](https://fiveham.github.io/Live-Elections/parallloading.html)
+[The current testing page is here.](https://fiveham.github.io/Elections/2019/special/primary/NC-03-Live.html)
 
 # What and How
 `auto_down.py`, run on my PC, will download (and cache) election results from the North Carolina State Board of Elections minute by 
