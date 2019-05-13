@@ -170,8 +170,11 @@ class AutoDown:
     
     print()
     q = str(distilled)
-    i = random.randint(0,len(q)-1-500)
-    print(q[i:i+500])
+    if len(q) <= 500:
+      print(q)
+    else:
+      i = random.randint(0,len(q)-1-500)
+      print(q[i:i+500])
     print()
   
   def fetch(self, label, countyID, now_ish):
