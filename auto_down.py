@@ -69,7 +69,7 @@ class AutoDown:
     result = {pty:[d
                    for d in list
                    if d['bnm'] in self.names_by_party[pty]]
-              for pty in ("DEM",'LIB','REP')}
+              for pty in self.names_by_party}
     topdic = {}
     for pty in result:
       t = top1(
