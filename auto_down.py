@@ -40,7 +40,8 @@ class AutoDown:
       id_to_COUNTY,
       repo_path,
       cache_path='./cache/',
-      simulator=None):
+      simulator=None,
+      filter=(lambda x : x)):
     
     if cache_path and simulator:
       raise Exception(("Simulating by reading a cache and then also writing "
@@ -53,6 +54,7 @@ class AutoDown:
                        if cache_path and not cache_path.endswith('/') 
                        else cache_path)
     self.getter = simulator or self
+    self.filter = filter
     self.now_ish = None
     self.names_by_party = None
   
@@ -182,10 +184,6 @@ class AutoDown:
   def lights_out(self, now_ish):
     return now_ish[-2] == 0 #If the operating "now" minute is 12:XX a.m.
   
-  def gen_dictable(self, part_getter):
-    return {countyId:part_getter(countyId, self.now_ish)
-            for countyId in self.id_to_COUNTY}
-  
   def run(self):
     #self.sync()
     
@@ -196,8 +194,11 @@ class AutoDown:
       right_now_ish = now_tuple()
       prev_minute = right_now_ish[-1]
       
-      state_results = self.getter.get_state_results(right_now_ish)
-      prec0 = self.getter.get_prec0(right_now_ish)
+      cacheable_state_results = self.getter.get_state_results(right_now_ish)
+      cacheable_prec0 = self.getter.get_prec0(right_now_ish)
+
+      state_results = self.filter(cacheable_state_results)
+      prec0 = self.filter(cacheable_prec0)
       
       self.names_by_party = (
           self.names_by_party or
@@ -211,15 +212,22 @@ class AutoDown:
         
         self.now_ish = right_now_ish
         
-        counties  = self.gen_dictable(self.getter.get_county)
-        precincts = self.gen_dictable(self.getter.get_precincts)
+        cacheable_counties  = {
+            NAME:self.getter.get_county(countyId, self.now_ish)
+            for countyId,NAME in self.id_to_COUNTY.items()}
+        cacheable_precincts = {
+            NAME:self.getter.get_precincts(countyId, self.now_ish)
+            for countyId,NAME in self.id_to_COUNTY.items()}
         
-        self.cache_it("state",     state_results)
-        self.cache_it("precinct0", prec0)
-        self.cache_it("counties",  {self.id_to_COUNTY[cId]:stuff
-                                    for cId,stuff in counties.items()})
-        self.cache_it("precincts", {self.id_to_COUNTY[cId]:stuff
-                                    for cId,stuff in precincts.items()})
+        counties  = {countyId:self.filter(cacheable_counties[NAME])
+                     for countyId,NAME in self.id_to_COUNTY.items()}
+        precincts = {countyId:self.filter(cacheable_precincts[NAME])
+                     for countyId,NAME in self.id_to_COUNTY.items()}
+        
+        self.cache_it("state",     cacheable_state_results)
+        self.cache_it("precinct0", cacheable_prec0)
+        self.cache_it("counties",  cacheable_counties)
+        self.cache_it("precincts", cacheable_precincts)
 
         is_final = all(all('final' in d[x].lower()
                            for x in ('sta','cts'))
@@ -381,12 +389,26 @@ def run():
     90:'Union'}
   repo = "./docs/2019/may/14/nc09/"
   cache_write = "./../cache/2019/may/14/"
+  rep_names = {
+    'Stevie Rivenbark Hull',
+    'Matthew Ridenhour',
+    'Stony Rushing',
+    'Fern Shubert',
+    'Albert Lee Wiley, Jr.',
+    'Chris Anglin',
+    'Dan Bishop',
+    'Leigh Thomas Brown',
+    'Kathie C. Day',
+    'Gary Dunn'}
   
   AutoDown(
     election_day,
     {i:c.upper() for i,c in nc09_counties.items()},
     repo,
-    cache_path=cache_write
+    cache_path=cache_write,
+    filter=(lambda x : [a
+                        for a in x
+                        if a['bnm'] in rep_names])
     ).run()
 
 def dry_run(sim_start=None):
