@@ -104,13 +104,10 @@ class AutoDown:
       d = {'top': g}
       result[precinct_name] = d
     return result
-  
+
+  #summary
   def distill_results(self, state, county, prec, is_final):
-    tops = {
-      'D': top2(state, 'DEM'),
-      'L': top2(state, 'LIB'),
-      'R': top2(state, 'REP')
-    }
+    tops = {pty[0]:top2(state, pty) for pty in self.names_by_party}
     
     distilled = {
       'version': SUMMARY_VERSION, 
