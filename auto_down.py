@@ -6,7 +6,7 @@ import json
 import os
 import random
 
-SUMMARY_VERSION = "2019.5.13"
+SUMMARY_VERSION = "2019.5.14"
 
 def now_tuple():
   now = datetime.datetime.now()
