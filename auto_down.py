@@ -104,16 +104,36 @@ class AutoDown:
       d = {'top': g}
       result[precinct_name] = d
     return result
-
+  
   #summary
   def distill_results(self, state, county, prec, is_final):
     tops = {pty[0]:top2(state, pty) for pty in self.names_by_party}
+
+    votes = {}
+    for p,names in tops.items():
+      votes_in_party = []
+      for i in range(2):
+        cand = tops[p][i]
+        d = next(iter(e for e in state if e['bnm'] == cand))
+        entry = {'count'  : int(d['vct']),
+                 'percent': float(d['pct'])}
+        votes_in_party.append(entry)
+      else:
+        entry = {'count'  : sum(int(d['vct'])
+                                for d in state
+                                if d['bnm'] not in tops[p]),
+                 'percent': sum(float(d['pct'])
+                                for d in state
+                                if d['bnm'] not in tops[p])}
+        votes_in_party.append(entry)
+      votes[p] = votes_in_party
     
     distilled = {
       'version': SUMMARY_VERSION, 
       'updated': "-".join(str(x) for x in self.now_ish),
       'isFinal': is_final or "",
       'top': tops,
+      'votes': votes, 
       'by_county': {
         self.id_to_COUNTY[cId]: {
           'top': self.get_tops(county[cId], tops),
