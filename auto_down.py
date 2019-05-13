@@ -130,10 +130,12 @@ class AutoDown:
       else:
         entry = {'count'  : sum(int(d['vct'])
                                 for d in state
-                                if d['bnm'] not in tops[p]),
+                                if (d['pty'][0] == p and
+                                    d['bnm'] not in tops[p])),
                  'percent': sum(float(d['pct'])
                                 for d in state
-                                if d['bnm'] not in tops[p])}
+                                if (d['pty'][0] == p and
+                                    d['bnm'] not in tops[p]))}
         votes_in_party.append(entry)
       votes[p] = votes_in_party
     
