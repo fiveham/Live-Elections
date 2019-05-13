@@ -107,8 +107,17 @@ class AutoDown:
   
   #summary
   def distill_results(self, state, county, prec, is_final):
-    tops = {pty[0]:top2(state, pty) for pty in self.names_by_party}
+    distilled = {
+      'version': SUMMARY_VERSION, 
+      'updated': "-".join(str(x) for x in self.now_ish),
+      'isFinal': is_final or "",
+    }
 
+    if all(d['vct'] == '0' for d in state):
+      return distilled
+    
+    tops = {pty[0]:top2(state, pty) for pty in self.names_by_party}
+    
     votes = {}
     for p,names in tops.items():
       votes_in_party = []
@@ -128,10 +137,7 @@ class AutoDown:
         votes_in_party.append(entry)
       votes[p] = votes_in_party
     
-    distilled = {
-      'version': SUMMARY_VERSION, 
-      'updated': "-".join(str(x) for x in self.now_ish),
-      'isFinal': is_final or "",
+    the_rest = {
       'top': tops,
       'votes': votes, 
       'by_county': {
@@ -142,7 +148,8 @@ class AutoDown:
         for cId in county
       }
     }
-    
+
+    distilled.update(the_rest)
     return distilled
 
   def push_it(self):
