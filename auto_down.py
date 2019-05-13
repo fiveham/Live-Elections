@@ -17,16 +17,16 @@ def intervals():
   while True:
     yield 2
 
-def top1(list, pty, test=None, post=(lambda x: x['bnm'])):
+def top1(list, pty, test=None, after=(lambda x: x)):
   if test is None:
     test = lambda dic : dic['pty'] == pty
   top = max(list, key=(lambda d : (int(d['vct'])
                                    if test(d)
                                    else -1)))
-  return post(top)
+  return after(top)
 
 def top2(list, pty):
-  top = top1(list, pty)
+  top = top1(list, pty, after=(lambda x: x['bnm']))
   sec = max(list, key=(lambda d : (int(d['vct'])
                                    if d['bnm'] != top and d['pty'] == pty
                                    else -1)))
@@ -75,8 +75,7 @@ class AutoDown:
       t = top1(
         list,
         pty,
-        test=(lambda dic : dic['bnm'] in self.names_by_party[pty]),
-        post=(lambda x : x))
+        test=(lambda dic : dic['bnm'] in self.names_by_party[pty]))
       p = pty[0]
       top2p = tops[p]
       name = t['bnm']
