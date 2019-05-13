@@ -459,7 +459,7 @@ def dry_run(sim_start=None):
   default_sim_start = datetime.datetime(2019, 4, 30, 19, 30)
   id_to_COUNTY = {i:c.upper() for i,c in nc03_counties.items()}
   
-  #start simulation from 7:29PM, before polls even closed
+  #start simulation from 7:30PM, when polls closed
   sim = FromCache(
     cache_read,
     sim_start or default_sim_start,
