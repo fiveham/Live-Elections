@@ -6,6 +6,8 @@ import json
 import os
 import random
 
+SUMMARY_VERSION = "2019.5.13"
+
 def now_tuple():
   now = datetime.datetime.now()
   return (now.year, now.month, now.day, now.hour, now.minute)
@@ -111,6 +113,7 @@ class AutoDown:
     }
     
     distilled = {
+      'version': SUMMARY_VERSION, 
       'updated': "-".join(str(x) for x in self.now_ish),
       'isFinal': is_final or "",
       'top': tops,
