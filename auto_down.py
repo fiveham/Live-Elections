@@ -67,7 +67,7 @@ class AutoDown:
     with open(self.cache_path + label +
               '_%d-%d-%d-%d-%d.txt' % self.now_ish, 'w') as into:
       json.dump(cache_me, into)
-
+  
   def get_tops(self, list, tops):
     #partition list by party
     result = {pty:[d
@@ -112,7 +112,7 @@ class AutoDown:
       'updated': "-".join(str(x) for x in self.now_ish),
       'isFinal': is_final or "",
     }
-
+    
     if all(d['vct'] == '0' for d in state):
       return distilled
     
@@ -150,14 +150,14 @@ class AutoDown:
         for cId in county
       }
     }
-
+    
     distilled.update(the_rest)
     return distilled
-
+  
   def push_it(self):
     print("Pushing summary to github")
     subprocess.run('git add summary.txt'.split(), cwd=self.repo_path)
-
+    
     commit_msg = 'result summary %d-%d-%d-%d-%d' % self.now_ish
     commit_cmd = 'git commit -m'.split() + [commit_msg]
     subprocess.run(commit_cmd, cwd=self.repo_path)
@@ -184,7 +184,7 @@ class AutoDown:
     return requests.get(
         self.base_url + label + '_%d.txt?v=%d-%d-%d' % (countyID,d,h,m)
         ).json()
-
+  
   #TODO check whether there even are changes to add/commit/push first
   def sync(self):
     subprocess.run("git add .".split(), cwd=self.repo_path)
@@ -228,7 +228,7 @@ class AutoDown:
       
       cacheable_state_results = self.getter.get_state_results(right_now_ish)
       cacheable_prec0 = self.getter.get_prec0(right_now_ish)
-
+      
       state_results = self.filter(cacheable_state_results)
       prec0 = self.filter(cacheable_prec0)
       
@@ -236,7 +236,7 @@ class AutoDown:
           self.names_by_party or
           {party:[e['bnm'] for e in state_results if e['pty'] == party]
            for party in {d['pty'] for d in state_results}})
-
+      
       if state_results != prev_state_results or prec0 != prev_prec0:
         print("Change of state")
         prev_state_results = state_results
@@ -260,7 +260,7 @@ class AutoDown:
         self.cache_it("precinct0", cacheable_prec0)
         self.cache_it("counties",  cacheable_counties)
         self.cache_it("precincts", cacheable_precincts)
-
+        
         is_final = all(all('final' in d[x].lower()
                            for x in ('sta','cts'))
                        for d in prec0)
@@ -302,13 +302,13 @@ class FromCache:
     #When this simulation starts, it will pretend that that moment is the
     #moment represented by sim_start
     self.sim_start = sim_start
-
+    
     self.id_to_COUNTY = dict(id_to_COUNTY)
     
     #The actual moment in time when this simulation begins running.
     #This will be set when any of the three interface methods is first called.
     self.op_start = None 
-
+    
     #Identify each minute described in the cache, and map from each label to
     #a sorted list of the minutes for which there exists a file matching that
     #label.
@@ -318,7 +318,7 @@ class FromCache:
                      for file in os.listdir(self.cache_dir)
                      if file.startswith(label))
         for label in ('state','counties','precincts','precinct0')}
-
+    
     #cache key and value for json-loading hard drive cache files
     self.runtime_cache = {}
   
@@ -364,7 +364,7 @@ class FromCache:
       val = json.load(outof)
     self.runtime_cache[label] = [cache_moment, val]
     return val
-
+  
   #Return statements for get_county and get_precincts end with
   #[self.id_to_COUNTY[countyId]] because the cache files use county names (in
   #all-caps) as human-readable identifiers for counties while the in-memory
@@ -399,13 +399,13 @@ class FromCache:
   
   def get_state_results(self, now_ish):
     return self.get_from_cache('state', now_ish)
-
+  
   def get_prec0(self, now_ish):
     return self.get_from_cache('precinct0', now_ish)
   
   def lights_out(self, now_ish):
     return False #simulator shuts off when the hard drive cache is done.
-  
+
 #Fetch data at the statewide level for the election of interest.
 #If all precincts have reported and results are final, exit
 def run():
@@ -467,7 +467,7 @@ def dry_run(sim_start=None):
   
   repo = "./docs/2019/apr/30/nc03/"
   cache_read = "./../cache/2019/apr/30/"
-
+  
   default_sim_start = datetime.datetime(2019, 4, 30, 19, 30)
   id_to_COUNTY = {i:c.upper() for i,c in nc03_counties.items()}
   
