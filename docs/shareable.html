@@ -1,0 +1,125 @@
+<html>
+  <head>
+    <title>Testing sharing buttons</title>
+    
+    <link rel="shortcut icon" href="https://raw.githubusercontent.com/fiveham/Elections/master/docs/images/nc-rwb-check.png">
+    
+    <meta charset="utf-8">
+    
+    <meta property="og:image" 
+          content="http://raw.githubusercontent.com/fiveham/Elections/master/docs/images/nc-reg-map-screenshot-square.png" />
+    <meta property="og:image:url" 
+          content="http://raw.githubusercontent.com/fiveham/Elections/master/docs/images/nc-reg-map-screenshot-square.png" />
+    <meta property="og:image:secure_url" 
+          content="https://raw.githubusercontent.com/fiveham/Elections/master/docs/images/nc-reg-map-screenshot-square.png" />
+    <meta property="og:image:alt" 
+          content="A satelite image of the eastern coast of North America from Maryland to Florida overlaid by a semitransparent gray 
+          polygon covering North Carolina. Sites in North Carolina required by the National Voting Rights Act (1993) to provide voter 
+          registration forms are marked by icons indicating the type of site." />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1660" />
+    <meta property="og:image:height" content="1660" />
+    
+    <meta property="og:url" content="https://fiveham.github.io/Live-Elections/shareable.html" />
+    <meta property="og:type" content="website" />
+    <meta property="og:determiner" content="" />
+    <meta property="og:title" 
+          content="Experimenting with social media sharing-buttons" />
+    <meta property="og:description" 
+          content="This is just a page with a few social media sharing-buttons created to verify that the URLs for those link-buttons 
+          work to share the page." />
+    
+    <style>
+      a[id^="share-"] {
+        display: inline-block;
+        height: 40px;
+        width: 40px;
+        margin: 10px;
+        background-color: gray;
+        background-size: contain;
+      }
+      
+      #sharing-is-caring {
+        padding: 10px;
+        background-color: green;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="sharing-is-caring">
+      <a target="_blank" id="share-facebook"  title="Share this map on Facebook" 
+         style="background-image: url('/Elections/images/social/Facebook/600px-Facebook_logo_square.png');"></a>
+      <a target="_blank" id="share-twitter"   title="Share this map on Twitter" 
+         style="background-image: url('/Elections/images/social/Twitter/Twitter_Logo_WhiteOnBlue.png');"></a>
+      <a target="_blank" id="share-reddit"    title="Share this map on Reddit" 
+         style="background-image: url('/Elections/images/social/Reddit/Artboard 1_48.png');"></a>
+      <a target="_blank" id="share-tumblr"    title="Share this map on Tumblr" 
+         style="background-image: url('/Elections/images/social/Tumblr/Tumblr_Logos_2018.03.06_t Icon White.png'); 
+           background-color: rgb(0,25,53); background-size: 7.5% 7.5%; background-position: center center;"></a>
+      <a target="_blank" id="share-pinterest" title="Share this map on Pinterest" 
+         style="background-image: url('/Elections/images/social/Pinterest/icon_64x64.png');"></a>
+    </div>
+    <script>
+    
+      function get_meta(property){
+        var metas = document.getElementsByTagName('meta');
+        for(var i = 0; i<metas.length; i++){
+          if(metas[i].getAttribute('property') === property){
+            return metas[i].getAttribute("content");
+          }
+        }
+        console.log("No meta found with property "+property);
+      }
+      
+      share_buttons = [
+        {name:'facebook',  get_href:function(url){
+            return 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url);
+          }},
+        {name:'twitter',   get_href:function(url){
+            var body = "Testing sharing body text and whatnot";
+            return 'https://twitter.com/intent/tweet/?text=' + encodeURIComponent(body) + '&url=' + encodeURIComponent(url)}';
+          }},
+        {name:'reddit',    get_href:function(url){
+            var title = 'Testing sharing title text, doo-dah, doo-dah';
+            return 'https://www.reddit.com/submit?title=' + encodeURIComponent(title) + '&url=' + encodeURIComponent(url);
+          }},
+        {name:'tumblr',    get_href:function(url){
+            /*return https://www.tumblr.com/widgets/share/tool
+            {canonicalUrl: THE OPEN-GRAPH CANONICAL URL OF THE PAGE, 
+            url: THE ACTUAL URL OF THE PAGE, 
+            posttype: link, 
+            tags: MAP,VOTE,REGISTER, 
+            title: TITLE OF THE LINK POST, 
+            content: FOR A LINK POST, THE LINK'S TARGET URL,
+            caption:  A DESCRIPTION OF THE LINK, 
+            show-via: ATTRIBUTION, LIKE "VIA THINGY MCPLACEYFACE"}*/
+            
+            var og_canonical_url = get_meta('og:url');
+            var tags = "testing,experiment";
+            var title = 'This is the post title. Expeeeeeerimeeeeent.';
+            var content = url;
+            var caption = "closed captions provided by: ...uh, I don't know.";
+            var show_via = 'Sorry_not_via_anything';
+            return 'https://www.tumblr.com/widgets/share/tool' +
+              '?canonicalUrl=' + encodeURIComponent(og_canonical_url) +
+              '&url='          + encodeURIComponent(url)     + 
+              '&posttype='     + 'link' + 
+              '&tags='         + encodeURIComponent(tags)    + 
+              '&title='        + encodeURIComponent(title)   + 
+              '&content='      + encodeURIComponent(content) + 
+              '&caption='      + encodeURIComponent(caption) + 
+              '&show-via='     + encodeURIComponent(show_via);
+          },
+        {name:'pinterest', get_href:function(url){
+            return 'https://pinterest.com/pin/create/button/' +
+              '?url='  + encodeURIComponent(url) +
+              '&media=' + encodeURIComponent(get_meta('og:image:secure_url')}
+          }}}];
+      
+      share_buttons.forEach(function(e){
+        var a = document.getElementById('share-'+e.name);
+        a.href = e.get_href(document.location.href);
+      });
+    </script>
+  </body>
+</html>
