@@ -98,10 +98,10 @@
             
             var og_canonical_url = get_meta('og:url');
             var tags = "testing,experiment";
-            var title = 'This is the post title. Expeeeeeerimeeeeent.';
+            var title = 'This is the post title. Expeeeeeerimeeeeent.'; //Overridden by og:title, followed by og:description
             var content = url;
-            var caption = "closed captions provided by: ...uh, I don't know.";
-            var show_via = 'Sorry_not_via_anything';
+            var caption = "closed captions provided by: ...uh, I don't know."; //Your own personal reblogging remarks.
+            var show_via = 'Sorry_not_via_anything'; //Not showing up
             return 'https://www.tumblr.com/widgets/share/tool' +
               '?canonicalUrl=' + encodeURIComponent(og_canonical_url) +
               '&url='          + encodeURIComponent(url)     + 
