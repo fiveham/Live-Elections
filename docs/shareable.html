@@ -90,6 +90,19 @@
         console.log("No meta found with property "+property);
       }
       
+      function for_url(text){
+        var result = encodeURIComponent(text);
+        var replacements = [
+          ['%20', '+'],
+          ['%2F', '/']
+        ];
+        for(var i = 0; i<replacements.length; i++){
+          var r = replacements[i];
+          result = result.replace(r[0],r[1]);
+        }
+        return result;
+      }
+      
       share_buttons = [
         {name:'facebook',  bgc: 'rgb(59,87,157)',  get_href:function(url){
             return 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url);
