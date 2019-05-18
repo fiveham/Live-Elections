@@ -103,6 +103,16 @@
         return result;
       }
       
+      function as_url(base_url, params){
+        var result = base_url;
+        for(var i = 0; i<params.length; i++){
+          var glue = i > 0 ? '&' : '?';
+          var pair = params[i];
+          result += glue + pair[0] + '=' + pair[1];
+        }
+        return result;
+      }
+      
       share_buttons = [
         {name:'facebook',  bgc: 'rgb(59,87,157)',  get_href:function(url){
             return 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url);
