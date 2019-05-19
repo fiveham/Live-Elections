@@ -91,10 +91,18 @@
       }
       
       function for_url(text){
+        //Multiple whitespaces into single space
+        text = text.split(/(\s+)/).filter(function(e){
+          return e.trim().length > 0;
+        }).join(' ');
+        //Convert problem characters
         var result = encodeURIComponent(text);
+        //Revert encodeable friendly characters
         var replacements = [
           ['%20', '+'],
-          ['%2F', '/']
+          ['%2C', ','],
+          ['%2F', '/'],
+          ['%3A', ':']
         ];
         for(var i = 0; i<replacements.length; i++){
           var r = replacements[i];
