@@ -45,36 +45,22 @@
         padding: 5px;
         background-color: green;
       }
-      
-      a#share-linkedin:after {
-        z-index: -1;
-        position: absolute;
-        display: block;
-        height: 80%;
-        width: 80%;
-        top: 20%;
-        left: 20%;
-        border: none;
-        padding: none;
-        margin: none;
-        background-color: white;
-      }
     </style>
   </head>
   <body>
     <div id="sharing-is-caring">
-      <a target="_blank" id="share-facebook"  title="Share this map on Facebook" 
+      <a id="share-facebook"  title="Share this map on Facebook" 
          style="background-image: url('/Elections/images/social/Facebook/600px-Facebook_logo_square.png');"></a>
-      <a target="_blank" id="share-twitter"   title="Share this map on Twitter" 
+      <a id="share-twitter"   title="Share this map on Twitter" 
          style="background-image: url('/Elections/images/social/Twitter/Twitter_Logo_WhiteOnBlue.png');"></a>
-      <a target="_blank" id="share-reddit"    title="Share this map on Reddit" 
+      <a id="share-reddit"    title="Share this map on Reddit" 
          style="background-image: url('/Elections/images/social/Reddit/Artboard 1_48.png');"></a>
-      <a target="_blank" id="share-tumblr"    title="Share this map on Tumblr" 
+      <a id="share-tumblr"    title="Share this map on Tumblr" 
          style="background-image: url('/Elections/images/social/Tumblr/Tumblr_Logos_2018.03.06_t Icon White.png'); 
            background-size: 35.5% 62.5%; background-position: center center;"></a>
-      <a target="_blank" id="share-pinterest" title="Share this map on Pinterest" 
+      <a id="share-pinterest" title="Share this map on Pinterest" 
          style="background-image: url('/Elections/images/social/Pinterest/icon_64x64.png');"></a>
-      <a target="_blank" id="share-linkedin"  title="Share this map on LinkedIn" 
+      <a id="share-linkedin"  title="Share this map on LinkedIn" 
          style="background-image: url('/Elections/images/social/LinkedIn/In-Blue-72.png'), 
                                   url('/Elections/images/social/LinkedIn/linkedin-uncornerer.png');"></a>
     </div>
@@ -212,6 +198,7 @@
       share_buttons.forEach(function(e){
         var a = document.getElementById('share-'+e.name);
         a.href = e.get_href(document.location.href);
+        a.target = "_blank";
         a.style.backgroundColor = e.bgc;
       });
     </script>
