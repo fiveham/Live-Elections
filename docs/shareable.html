@@ -98,7 +98,7 @@
         ];
         for(var i = 0; i<replacements.length; i++){
           var r = replacements[i];
-          result = result.replace(r[0],r[1]);
+          result = result.replace(new RegExp(r[0], 'g'), r[1]);
         }
         return result;
       }
