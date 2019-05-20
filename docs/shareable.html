@@ -111,7 +111,6 @@
         {name:'facebook',  bgc: 'rgb(59,87,157)',  get_href:function(url){
             var params = [['u', url]];
             return as_url('https://www.facebook.com/sharer/sharer.php', params);
-            //return 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url);
           }},
         {name:'twitter',   bgc: 'rgb(29,161,242)', get_href:function(url){
             var params = [
@@ -127,26 +126,8 @@
               ['url', url]
             ];
             return as_url('https://www.reddit.com/submit', params);
-            //return 'https://www.reddit.com/submit?title=' + encodeURIComponent(title) + '&url=' + encodeURIComponent(url);
           }},
         {name:'tumblr',    bgc: 'rgb(0,25,53)',    get_href:function(url){
-            /*return https://www.tumblr.com/widgets/share/tool
-            {canonicalUrl: THE OPEN-GRAPH CANONICAL URL OF THE PAGE, 
-            url: THE ACTUAL URL OF THE PAGE, 
-            posttype: link, 
-            tags: MAP,VOTE,REGISTER, 
-            title: TITLE OF THE LINK POST, 
-            content: FOR A LINK POST, THE LINK'S TARGET URL,
-            caption:  A DESCRIPTION OF THE LINK, 
-            show-via: ATTRIBUTION, LIKE "VIA THINGY MCPLACEYFACE"}*/
-            
-            /*var og_canonical_url = get_meta('og:url');
-            var tags = "testing,experiment";
-            var title = 'This is the post title. Expeeeeeerimeeeeent.'; //Overridden by og:title, followed by og:description
-            var content = url;
-            var caption = "closed captions provided by: ...uh, I don't know."; //Your own personal reblogging remarks.
-            var show_via = 'Sorry_not_via_anything'; //Not showing up*/
-          
             var params = [
               ['canonicalUrl', get_meta('og:url')],
               ['url',          url],
@@ -170,12 +151,10 @@
           }},
         {name:'pinterest', bgc: 'rgb(206,40,44)',   get_href:function(url){
             var params = [
-              ['url',   url],
-              ['media', get_meta('og:image:secure_url')]];
+              ['url',         url],
+              ['media',       get_meta('og:image:secure_url')],
+              ['description', get_meta('og:description')]];
             return as_url('https://pinterest.com/pin/create/button/', params);
-            /*return 'https://pinterest.com/pin/create/button/' +
-              '?url='  + encodeURIComponent(url) +
-              '&media=' + encodeURIComponent(get_meta('og:image:secure_url'));*/
           }},
         {name:'linkedin', bgc: 'rgb(10,102,194)',   get_href:function(url){
             var params = [
