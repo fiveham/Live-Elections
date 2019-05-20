@@ -63,6 +63,8 @@
       <a id="share-linkedin"  title="Share this map on LinkedIn" 
          style="background-image: url('/Elections/images/social/LinkedIn/In-Blue-72.png'), 
                                   url('/Elections/images/social/LinkedIn/linkedin-uncornerer.png');"></a>
+      <a id="share-googleplus" title="Share this map on Google+" 
+         style="background-image: url('https://www.gstatic.com/images/icons/gplus-64.png');></a>
     </div>
     <script>
     
@@ -171,6 +173,10 @@
               '&title='   + encodeURIComponent(get_meta('og:title')) +
               '&summary=' + encodeURIComponent(get_meta('og:description')) + 
               '&source=fiveham.github.io';/**/
+          }},
+        {name:'googleplus', bgc: 'rgb(221,78,65)', get_href:function(url){
+            var params = [['url', url]];
+            return as_url('https://plus.google.com/share', params);
           }}
         ];
       
