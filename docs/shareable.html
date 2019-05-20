@@ -45,6 +45,18 @@
         padding: 5px;
         background-color: green;
       }
+      
+      a#share-mix {
+        font-family: sw-icon-font !important; /*Load Font Awesome*/
+        color: white;
+        text-align: center;
+        line-height: 40px; /*The height of the <a> element*/
+      }
+      
+      a#share-mix:before {
+        content: 'g'; /*Mix logo in Font Awesome*/
+        display: inline-block;
+      }
     </style>
   </head>
   <body>
@@ -65,6 +77,7 @@
                                   url('/Elections/images/social/LinkedIn/linkedin-uncornerer.png');"></a>
       <a id="share-googleplus" title="Share this map on Google+" 
          style="background-image: url('https://www.gstatic.com/images/icons/gplus-64.png');"></a>
+      <a id="share-mix" title="Share this map on Mix"></a>
     </div>
     <script>
     
@@ -177,6 +190,10 @@
         {name:'googleplus', bgc: 'rgb(221,78,65)', get_href:function(url){
             var params = [['url', url]];
             return as_url('https://plus.google.com/share', params);
+          }},
+        {name:'mix', bgc:'rgb(244, 129, 44)', get_href:function(url){
+            var params = [['url', url]];
+            return as_url('https://mix.com/mixit', params);
           }}
         ];
       
