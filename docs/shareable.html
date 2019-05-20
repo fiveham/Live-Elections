@@ -50,6 +50,8 @@
   </head>
   <body>
     <div id="sharing-is-caring">
+      <!-- Sharing Links go here -->
+      <!--
       <a id="share-facebook"  title="Share this map on Facebook" 
          style="background-image: url('/Elections/images/social/Facebook/600px-Facebook_logo_square.png');"></a>
       <a id="share-twitter"   title="Share this map on Twitter" 
@@ -68,6 +70,7 @@
          style="background-image: url('https://www.gstatic.com/images/icons/gplus-64.png');"></a>
       <a id="share-mix" title="Share this map on Mix" 
          style="background-image: url('/Elections/images/social/Mix/mix-manual.png');"></a>
+      -->
     </div>
     <script>
     
@@ -113,26 +116,29 @@
       }
       
       share_buttons = [
-        {name:'facebook',  bgc: 'rgb(59,87,157)',  get_href:function(url){
+        { name:'facebook',  bgc: 'rgb(59,87,157)', bgimgs: ['/Elections/images/social/Facebook/600px-Facebook_logo_square.png'],  
+          get_href:function(url){
             var params = [['u', url]];
             return as_url('https://www.facebook.com/sharer/sharer.php', params);
           }},
-        {name:'twitter',   bgc: 'rgb(29,161,242)', get_href:function(url){
+        { name:'twitter',   bgc: 'rgb(29,161,242)', bgimgs: ['/Elections/images/social/Twitter/Twitter_Logo_WhiteOnBlue.png'], 
+          get_href:function(url){
             var params = [
               ['text', "Testing sharing body text and whatnot"], 
               ['url', url]
             ];
             return as_url('https://twitter.com/intent/tweet/', params);
-            //return 'https://twitter.com/intent/tweet/?text=' + encodeURIComponent(body) + '&url=' + encodeURIComponent(url);
           }},
-        {name:'reddit',    bgc: 'rgb(255,69,0)',   get_href:function(url){
+        { name:'reddit',    bgc: 'rgb(255,69,0)', bgimgs: ['/Elections/images/social/Reddit/Artboard 1_48.png'], 
+          get_href:function(url){
             var params = [
               ['title', 'Testing sharing title text, doo-dah, doo-dah'], 
               ['url', url]
             ];
             return as_url('https://www.reddit.com/submit', params);
           }},
-        {name:'tumblr',    bgc: 'rgb(0,25,53)',    get_href:function(url){
+        { name:'tumblr',    bgc: 'rgb(0,25,53)', bgimgs: ['/Elections/images/social/Tumblr/Tumblr_Logos_2018.03.06_t Icon White.png'], 
+          get_href:function(url){
             var params = [
               ['canonicalUrl', get_meta('og:url')],
               ['url',          url],
@@ -144,24 +150,18 @@
               ['show-via',     'Sorry_not_via_anything']                             //Not showing up
             ];
             return as_url('https://www.tumblr.com/widgets/share/tool', params);
-            /*return 'https://www.tumblr.com/widgets/share/tool' +
-              '?canonicalUrl=' + encodeURIComponent(og_canonical_url) +
-              '&url='          + encodeURIComponent(url)     + 
-              '&posttype='     + 'link' + 
-              '&tags='         + encodeURIComponent(tags)    + 
-              '&title='        + encodeURIComponent(title)   + 
-              '&content='      + encodeURIComponent(content) + 
-              '&caption='      + encodeURIComponent(caption) + 
-              '&show-via='     + encodeURIComponent(show_via);*/
           }},
-        {name:'pinterest', bgc: 'rgb(206,40,44)',   get_href:function(url){
+        { name:'pinterest', bgc: 'rgb(206,40,44)', bgimgs: ['/Elections/images/social/Pinterest/icon_64x64.png'],   
+          get_href:function(url){
             var params = [
               ['url',         url],
               ['media',       get_meta('og:image:secure_url')],
               ['description', get_meta('og:description')]];
             return as_url('https://pinterest.com/pin/create/button/', params);
           }},
-        {name:'linkedin', bgc: 'rgb(10,102,194)',   get_href:function(url){
+        { name:'linkedin', bgc: 'rgb(10,102,194)', 
+          bgimgs: ['/Elections/images/social/LinkedIn/In-Blue-72.png'), '/Elections/images/social/LinkedIn/linkedin-uncornerer.png'],   
+          get_href:function(url){
             var params = [
               ['mini',    'true'],
               ['url',     url],
@@ -170,27 +170,28 @@
               ['source',  'fiveham.github.io']
             ];
             return as_url('https://www.linkedin.com/shareArticle', params);
-            /*return 'https://www.linkedin.com/shareArticle' + 
-              '?mini=true' + 
-              '&url='     + encodeURIComponent(url) + 
-              '&title='   + encodeURIComponent(get_meta('og:title')) +
-              '&summary=' + encodeURIComponent(get_meta('og:description')) + 
-              '&source=fiveham.github.io';/**/
-          }},
-        {name:'googleplus', bgc: 'rgb(221,78,65)', get_href:function(url){
+          }, forTitle: 'LinkedIn'},
+        { name:'googleplus', bgc: 'rgb(221,78,65)', bgimgs: ['https://www.gstatic.com/images/icons/gplus-64.png'], 
+          get_href:function(url){
             var params = [['url', url]];
             return as_url('https://plus.google.com/share', params);
-          }},
-        {name:'mix', bgc:'rgb(244, 129, 44)', get_href:function(url){
+          }, forTitle: 'Google+'},
+        { name:'mix', bgc:'rgb(244, 129, 44)', bgimgs: ['/Elections/images/social/Mix/mix-manual.png'], get_href:function(url){
             var params = [['url', url]];
             return as_url('https://mix.com/mixit', params);
           }}
         ];
       
+      var sic = document.getElementById('sharing-is-caring');
       share_buttons.forEach(function(e){
-        var a = document.getElementById('share-'+e.name);
+        var a = document.createElement('a');
+        sic.appendChild(a);
+        a.id = 'share-' + e.name;
         a.href = e.get_href(document.location.href);
         a.target = "_blank";
+        var ft = a.forTitle ? a.forTitle : e.name.charAt(0).toUpperCase() + e.name.slice(1);
+        a.title = "Share this map on " + ft;
+        a.style.backgroundImage = e.bgimgs.map(function(x){return "url('" + x + "')"}).join(', ');
         a.style.backgroundColor = e.bgc;
       });
     </script>
