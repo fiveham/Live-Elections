@@ -170,6 +170,15 @@
               ['c', get_meta('og:description')]
             ];
             return as_url('https://myspace.com/post', params);
+          }},
+        { name:'hackernews', bgc:'rgb(241,102,36)', forTitle:'HackerNews', 
+          bgimgs:['/Elections/images/social/HackerNews/hacker-y.png'], 
+          get_href:function(url){
+            var params = [
+              ['u', url],
+              ['t', get_meta('og:title')]
+            ];
+            return as_url('https://news.ycombinator.com/submitlink', params);
           }}
         ];
       
@@ -189,8 +198,8 @@
         if(e.initStyle){
           a.style = e.initStyle;
         }
-        a.style.backgroundImage = e.bgimgs.map(function(x){return "url('" + x + "')"}).join(', ');
         a.style.backgroundColor = e.bgc;
+        a.style.backgroundImage = e.bgimgs.map(function(x){return "url('" + x + "')"}).join(', ');
       });
     </script>
   </body>
