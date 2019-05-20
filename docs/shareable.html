@@ -190,7 +190,9 @@
         a.href = e.get_href(document.location.href);
         a.target = "_blank";
         
-        var ft = a.forTitle ? a.forTitle : e.name.charAt(0).toUpperCase() + e.name.slice(1);
+        var ft = e.forTitle 
+            ? e.forTitle 
+            : (e.name.charAt(0).toUpperCase() + e.name.slice(1));
         a.title = "Share this map on " + ft;
         
         if(e.initStyle){
