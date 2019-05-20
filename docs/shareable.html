@@ -158,7 +158,7 @@
           }, forTitle: 'Google+'},
         { name:'mix', bgc:'rgb(244, 129, 44)', bgimgs: ['/Elections/images/social/Mix/mix-manual.png'], get_href:function(url){
             var params = [['url', url]];
-            return as_url('https://mix.com/mixit', params);
+            return as_url('https://mix.com/mixit', params); //Or /add instead of /mixit
           }},
         { name:'myspace', bgc:'rgb(39,39,39)', forTitle:'MySpace', 
          initStyle: "background-size: 66.7% 40.6%; background-position: center center;", 
@@ -188,6 +188,15 @@
               ['url',   url]
             ];
             return as_url('https://share.diasporafoundation.org/', params);
+          }},
+        { name:'buffer', bgc:'rgb(25,37,52)', 
+          bgimgs:['/Elections/images/social/Buffer/buffer-logo.png'], 
+          get_href:function(url){
+            var params = [
+              ['text', get_meta('og:title')], //Maybe should be description instead
+              ['url',   url]
+            ];
+            return as_url('https://buffer.com/add', params);
           }}
         ];
       
