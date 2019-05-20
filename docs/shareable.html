@@ -199,6 +199,16 @@
               ['url',   url]
             ];
             return as_url('https://buffer.com/add', params);
+          }},
+        { name:'skype', bgc:'rgb(0,175,240)', 
+          initStyle: "background-size: 23px 23px; background-position: center center;", 
+          bgimgs:['/Elections/images/social/Skype/s_logo.svg'], 
+          get_href:function(url){
+            var params = [
+              ['title', get_meta('og:title')], //Maybe should be description instead
+              ['url',   url]
+            ];
+            return as_url('https://web.skype.com/share', params);
           }}
         ];
       
