@@ -150,7 +150,7 @@
               ['show-via',     'Sorry_not_via_anything']                             //Not showing up
             ];
             return as_url('https://www.tumblr.com/widgets/share/tool', params);
-          }},
+          }, initStyle: "background-size: 35.5% 62.5%; background-position: center center;"},
         { name:'pinterest', bgc: 'rgb(206,40,44)', bgimgs: ['/Elections/images/social/Pinterest/icon_64x64.png'],   
           get_href:function(url){
             var params = [
@@ -189,8 +189,13 @@
         a.id = 'share-' + e.name;
         a.href = e.get_href(document.location.href);
         a.target = "_blank";
+        
         var ft = a.forTitle ? a.forTitle : e.name.charAt(0).toUpperCase() + e.name.slice(1);
         a.title = "Share this map on " + ft;
+        
+        if(e.initStyle){
+          a.style = e.initStyle;
+        }
         a.style.backgroundImage = e.bgimgs.map(function(x){return "url('" + x + "')"}).join(', ');
         a.style.backgroundColor = e.bgc;
       });
