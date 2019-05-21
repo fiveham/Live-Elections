@@ -47,12 +47,32 @@
         background-color: green;
       }
     </style>
+    
+    <script type="text/javascript" src="/Elections/js/share-buttons.js"></script>
   </head>
   <body>
     <div id="sharing-is-caring">
       <!-- Sharing Links go here -->
     </div>
     <script>
+      add_share_buttons(
+        document.getElementById('sharing-is-caring'), 
+        [
+          'facebook',
+          'twitter',
+          'reddit',
+          'tumblr',
+          'pinterest',
+          'linkedin',
+          'googleplus',
+          'mix',
+          'myspace',
+          'hackernews',
+          'diaspora',
+          'buffer',
+          'skype']);
+    </script>
+    <!-- <script>
     
       function get_meta(property){
         var metas = document.getElementsByTagName('meta');
@@ -231,6 +251,6 @@
         a.style.backgroundColor = e.bgc;
         a.style.backgroundImage = e.bgimgs.map(function(x){return "url('" + x + "')"}).join(', ');
       });
-    </script>
+    </script> -->
   </body>
 </html>
