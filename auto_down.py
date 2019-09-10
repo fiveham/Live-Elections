@@ -6,33 +6,39 @@ import json
 import os
 import random
 
-SUMMARY_VERSION = "2019.5.14"
+SUMMARY_VERSION = "2019.9.10"
+
+cnm = "US HOUSE OF REPRESENTATIVES DISTRICT 0%s (VOTE FOR 1)"
 
 def now_tuple():
+  """Return a 5-element tuple of the current year, month, day, hour, and
+     minute"""
   now = datetime.datetime.now()
   return (now.year, now.month, now.day, now.hour, now.minute)
 
 def intervals():
+  """Yield 10 seconds twice, then 8 seconds twice, then 6 seconds twice, then
+     4 seconds twice, then 2 seconds over and over forever."""
   for x in (10,8,6,4):
     yield x
     yield x
   while True:
     yield 2
 
-def top1(list, pty, test=None, after=(lambda x: x)):
-  if test is None:
-    test = lambda dic : dic['pty'] == pty
-  top = max(list, key=(lambda d : (int(d['vct'])
-                                   if test(d)
-                                   else -1)))
-  return after(top)
-
-def top2(list, pty):
-  top = top1(list, pty, after=(lambda x: x['bnm']))
-  sec = max(list, key=(lambda d : (int(d['vct'])
-                                   if d['bnm'] != top and d['pty'] == pty
-                                   else -1)))
-  return [top,sec['bnm']]
+##def top1(list, pty, test=None, after=(lambda x: x)):
+##  if test is None:
+##    test = lambda dic : dic['pty'] == pty
+##  top = max(list, key=(lambda d : (int(d['vct'])
+##                                   if test(d)
+##                                   else -1)))
+##  return after(top)
+##
+##def top2(list, pty):
+##  top = top1(list, pty, after=(lambda x: x['bnm']))
+##  sec = max(list, key=(lambda d : (int(d['vct'])
+##                                   if d['bnm'] != top and d['pty'] == pty
+##                                   else -1)))
+##  return [top,sec['bnm']]
 
 class AutoDown:
   
@@ -45,7 +51,7 @@ class AutoDown:
       simulator=None,
       filter=(lambda x : x)):
     
-    if cache_path and simulator:
+    if cache_path is not None and simulator is not None:
       raise Exception(("Simulating by reading a cache and then also writing "
                        "into that cache would be a bad idea."))
     #if cache_path is falsey, step-by-step results are not cached
@@ -58,102 +64,142 @@ class AutoDown:
     self.getter = simulator or self
     self.filter = filter
     self.now_ish = None
-    self.names_by_party = None
-  
+    #self.names_by_party = None
+    self.names = None
   
   def cache_it(self, label, cache_me):
     if not self.cache_path:
       return
-    with open(self.cache_path + label +
-              '_%d-%d-%d-%d-%d.txt' % self.now_ish, 'w') as into:
-      json.dump(cache_me, into)
+    json.dump(cache_me,
+              open(self.cache_path + label +
+                   '_%d-%d-%d-%d-%d.txt' % self.now_ish, 'w'))
   
-  def get_tops(self, list, tops):
-    #partition list by party
-    result = {pty:[d
-                   for d in list
-                   if d['bnm'] in self.names_by_party[pty]]
-              for pty in self.names_by_party}
-    topdic = {}
-    for pty in result:
-      t = top1(
-        list,
-        pty,
-        test=(lambda dic : dic['bnm'] in self.names_by_party[pty]))
-      p = pty[0]
-      top2p = tops[p]
-      name = t['bnm']
-      if t['vct'] == '0':
-        topdic[p] = -1
-      else:
-        try:
-          topdic[p] = top2p.index(name)
-        except ValueError: #name not in list
-          topdic[p] = 2
-    return topdic
+##  def get_tops(self, list, tops):
+##    #partition list by party
+##    result = {pty:[d
+##                   for d in list
+##                   if d['bnm'] in self.names_by_party[pty]]
+##              for pty in self.names_by_party}
+##    topdic = {}
+##    for pty in result:
+##      t = top1(
+##        list,
+##        pty,
+##        test=(lambda dic : dic['bnm'] in self.names_by_party[pty]))
+##      p = pty[0]
+##      top2p = tops[p]
+##      name = t['bnm']
+##      if t['vct'] == '0':
+##        topdic[p] = -1
+##      else:
+##        try:
+##          topdic[p] = top2p.index(name)
+##        except ValueError: #name not in list
+##          topdic[p] = 2
+##    return topdic
+##  
+##  def partition_by_precinct(self, county_results_by_precinct, tops):
+##    result = {d['aid']:[] for d in county_results_by_precinct}
+##    for d in county_results_by_precinct:
+##      precinct_name = d['aid']
+##      result[precinct_name].append(d)
+##    
+##    for precinct_name in result:
+##      prec_el_results = result[precinct_name]
+##      g = self.get_tops(prec_el_results, tops)
+##      d = {'top': g}
+##      result[precinct_name] = d
+##    return result
+##  
+##  #summary
+##  def distill_results_old(self, state, county, prec, is_final):
+##    distilled = {
+##      'version': SUMMARY_VERSION, 
+##      'updated': "-".join(str(x) for x in self.now_ish),
+##      'isFinal': is_final or "",
+##    }
+##    
+##    if all(d['vct'] == '0' for d in state):
+##      return distilled
+##    
+##    tops = {pty[0]:top2(state, pty) for pty in self.names_by_party}
+##    
+##    votes = {}
+##    for p,names in tops.items():
+##      votes_in_party = []
+##      for i in range(2):
+##        cand = tops[p][i]
+##        d = next(iter(e for e in state if e['bnm'] == cand))
+##        entry = {'count'  : int(d['vct']),
+##                 'percent': float(d['pct'])}
+##        votes_in_party.append(entry)
+##      else:
+##        entry = {'count'  : sum(int(d['vct'])
+##                                for d in state
+##                                if (d['pty'][0] == p and
+##                                    d['bnm'] not in tops[p])),
+##                 'percent': sum(float(d['pct'])
+##                                for d in state
+##                                if (d['pty'][0] == p and
+##                                    d['bnm'] not in tops[p]))}
+##        votes_in_party.append(entry)
+##      votes[p] = votes_in_party
+##    
+##    the_rest = {
+##      'top': tops,
+##      'votes': votes, 
+##      'by_county': {
+##        self.id_to_COUNTY[cId]: {
+##          'top': self.get_tops(county[cId], tops),
+##          'by_precinct': self.partition_by_precinct(prec[cId], tops),
+##        }
+##        for cId in county
+##      }
+##    }
+##    
+##    distilled.update(the_rest)
+##    return distilled
   
-  def partition_by_precinct(self, county_results_by_precinct, tops):
-    result = {d['aid']:[] for d in county_results_by_precinct}
-    for d in county_results_by_precinct:
-      precinct_name = d['aid']
-      result[precinct_name].append(d)
-    
-    for precinct_name in result:
-      prec_el_results = result[precinct_name]
-      g = self.get_tops(prec_el_results, tops)
-      d = {'top': g}
-      result[precinct_name] = d
+  def distill_precinct(self, records):
+    return {self.names[record['bnm']]:record['vct'] for record in records}
+  
+  def distill_county(self, in_county, precincts):
+    result = {record['pty'][0]:record['vct'] for record in in_county}
+    result['by_precinct'] = {
+        aid:self.distill_precinct(
+            [p for p in precincts if p['aid'] == aid])
+        for aid in (record['aid'] for record in precincts)}
     return result
   
-  #summary
+  def distill_district(self, district, state, county, prec):
+    contest = cnm % district
+    result = {record['pty'][0]:record['vct']
+              for record in state if record['cnm'] == contest}
+    result['by_county'] = {NAME:self.distill_county(records, prec[NAME])
+                           for NAME, records in county.items()
+                           if records[0]['cnm'] == contest}
+    return result
+  
   def distill_results(self, state, county, prec, is_final):
+
+    #Create initial distillation
     distilled = {
       'version': SUMMARY_VERSION, 
       'updated': "-".join(str(x) for x in self.now_ish),
       'isFinal': is_final or "",
     }
     
+    #If there's not actually any results yet, 
     if all(d['vct'] == '0' for d in state):
       return distilled
     
-    tops = {pty[0]:top2(state, pty) for pty in self.names_by_party}
+    distilled['by_district'] = {
+        district:self.distill_district(district, state, county, prec)
+        for district in '39'}
     
-    votes = {}
-    for p,names in tops.items():
-      votes_in_party = []
-      for i in range(2):
-        cand = tops[p][i]
-        d = next(iter(e for e in state if e['bnm'] == cand))
-        entry = {'count'  : int(d['vct']),
-                 'percent': float(d['pct'])}
-        votes_in_party.append(entry)
-      else:
-        entry = {'count'  : sum(int(d['vct'])
-                                for d in state
-                                if (d['pty'][0] == p and
-                                    d['bnm'] not in tops[p])),
-                 'percent': sum(float(d['pct'])
-                                for d in state
-                                if (d['pty'][0] == p and
-                                    d['bnm'] not in tops[p]))}
-        votes_in_party.append(entry)
-      votes[p] = votes_in_party
-    
-    the_rest = {
-      'top': tops,
-      'votes': votes, 
-      'by_county': {
-        self.id_to_COUNTY[cId]: {
-          'top': self.get_tops(county[cId], tops),
-          'by_precinct': self.partition_by_precinct(prec[cId], tops),
-        }
-        for cId in county
-      }
-    }
-    
-    distilled.update(the_rest)
     return distilled
-  
+
+  #TODO check that these moves would even do anything first
   def push_it(self):
     print("Pushing summary to github")
     subprocess.run('git add summary.txt'.split(), cwd=self.repo_path)
@@ -163,25 +209,31 @@ class AutoDown:
     subprocess.run(commit_cmd, cwd=self.repo_path)
     
     subprocess.run('git push'.split(), cwd=self.repo_path)
-  
-  def upload(self, state, county, prec, is_final):
-    distilled = self.distill_results(state, county, prec, is_final)
-    with open(self.repo_path + '/summary.txt', 'w') as into:
-      json.dump(distilled, into)
-    self.push_it()
-    
+
+  def print_sample(distilled):
     print()
     q = str(distilled)
     if len(q) <= 500:
       print(q)
     else:
-      i = random.randint(0,len(q)-1-500)
+      i = random.randint(0, len(q)-1-500)
       print(q[i:i+500])
     print()
   
-  def fetch(self, label, countyID, now_ish):
+  def upload(self, state, county, prec, is_final):
+    distilled = self.distill_results(state, county, prec, is_final)
+    json.dump(distilled, open(self.repo_path + '/summary.txt', 'w'))
+    self.push_it()
+    print_sample(distilled)
+  
+  def fetch(self, label, countyID, now_ish, sesh={}):
     y,l,d,h,m = now_ish
-    return requests.get(
+    try:
+      session = sesh[0]
+    except KeyError:
+      session = requests.Session()
+      sesh[0] = session
+    return session.get(
         self.base_url + label + '_%d.txt?v=%d-%d-%d' % (countyID,d,h,m)
         ).json()
   
@@ -214,6 +266,7 @@ class AutoDown:
   
   #method for simulator
   def lights_out(self, now_ish):
+    """At and after midnight, the bot needs to just stop. That's too long."""
     return now_ish[-2] == 0 #If the operating "now" minute is 12:XX a.m.
   
   def run(self):
@@ -226,59 +279,77 @@ class AutoDown:
       right_now_ish = now_tuple()
       prev_minute = right_now_ish[-1]
       
+      #Get statewide county-level results
       cacheable_state_results = self.getter.get_state_results(right_now_ish)
-      cacheable_prec0 = self.getter.get_prec0(right_now_ish)
-      
       state_results = self.filter(cacheable_state_results)
+      
+      #Get statewide precinct-level results
+      cacheable_prec0 = self.getter.get_prec0(right_now_ish)
       prec0 = self.filter(cacheable_prec0)
       
-      self.names_by_party = (
-          self.names_by_party or
-          {party:[e['bnm'] for e in state_results if e['pty'] == party]
-           for party in {d['pty'] for d in state_results}})
+      #for some reason, organize a mapping from party to the candidates in
+      #that party
+##      self.names_by_party = (
+##          self.names_by_party or
+##          {party:[e['bnm']
+##                  for e in state_results
+##                  if e['pty'] == party]
+##           for party in {record['pty']
+##                         for record in state_results}})
       
+      self.names = (self.names or
+                    {record['bnm']:record['pty'][0]
+                     for record in state_results})
+      
+      #If there's new information, 
       if state_results != prev_state_results or prec0 != prev_prec0:
+        
         print("Change of state")
+        
+        #store new info to check against next time
         prev_state_results = state_results
         prev_prec0 = prec0
         
         self.now_ish = right_now_ish
         
         cacheable_counties  = {
-            NAME:self.getter.get_county(countyId, self.now_ish)
+            NAME:self.getter.get_county(countyId, right_now_ish)
             for countyId,NAME in self.id_to_COUNTY.items()}
         cacheable_precincts = {
-            NAME:self.getter.get_precincts(countyId, self.now_ish)
+            NAME:self.getter.get_precincts(countyId, right_now_ish)
             for countyId,NAME in self.id_to_COUNTY.items()}
         
-        counties  = {countyId:self.filter(cacheable_counties[NAME])
-                     for countyId,NAME in self.id_to_COUNTY.items()}
-        precincts = {countyId:self.filter(cacheable_precincts[NAME])
-                     for countyId,NAME in self.id_to_COUNTY.items()}
+##        counties  = {countyId:self.filter(cacheable_counties[NAME])
+##                     for countyId,NAME in self.id_to_COUNTY.items()}
+##        precincts = {countyId:self.filter(cacheable_precincts[NAME])
+##                     for countyId,NAME in self.id_to_COUNTY.items()}
+        
+        counties = {NAME:self.filter(records)
+                    for NAME, records in cacheable_counties.items()}
+        precincts = {NAME:self.filter(records)
+                     for NAME, records in cacheable_precincts.items()}
         
         self.cache_it("state",     cacheable_state_results)
         self.cache_it("precinct0", cacheable_prec0)
         self.cache_it("counties",  cacheable_counties)
         self.cache_it("precincts", cacheable_precincts)
         
-        is_final = all(all('final' in d[x].lower()
-                           for x in ('sta','cts'))
-                       for d in prec0)
+        is_final = all(all('final' in precinct_record[field].lower()
+                           for field in ('sta','cts'))
+                       for precinct_record in prec0)
         
         self.upload(state_results, counties, precincts, is_final)
         
         if is_final:
           print("All precincts reported. Done.")
           return
-      
+
+      #If it's quitting time, quit
       if self.getter.lights_out(right_now_ish):
         print("Terminating because this has just gone on too long.")
-        summary = None
-        with open(self.repo_path + '/summary.txt', 'r') as out:
-          summary = json.load(out)
+        summary = json.load(open(self.repo_path + '/summary.txt'))
         summary['isFinal'] = "Terminated for time."
-        with open(self.repo_path + '/summary.txt', 'w') as into:
-          json.dump(summary, into)
+        json.dump(summary, open(self.repo_path + '/summary.txt', 'w'))
         self.push_it()
         return
       else:
@@ -409,7 +480,8 @@ class FromCache:
 #Fetch data at the statewide level for the election of interest.
 #If all precincts have reported and results are final, exit
 def run():
-  election_day = "20190514"
+  election_day = "20190910"
+  
   nc09_counties = {
      4:'Anson',
      9:'Bladen',
@@ -419,32 +491,6 @@ def run():
     78:'Robeson',
     83:'Scotland',
     90:'Union'}
-  repo = "./docs/2019/may/14/nc09/"
-  cache_write = "./../cache/2019/may/14/"
-  rep_names = {
-    'Stevie Rivenbark Hull',
-    'Matthew Ridenhour',
-    'Stony Rushing',
-    'Fern Shubert',
-    'Albert Lee Wiley, Jr.',
-    'Chris Anglin',
-    'Dan Bishop',
-    'Leigh Thomas Brown',
-    'Kathie C. Day',
-    'Gary Dunn'}
-  
-  AutoDown(
-    election_day,
-    {i:c.upper() for i,c in nc09_counties.items()},
-    repo,
-    cache_path=cache_write,
-    filter=(lambda x : [a
-                        for a in x
-                        if a['bnm'] in rep_names])
-    ).run()
-
-def dry_run(sim_start=None):
-  election_day = "20190430"
   
   nc03_counties = {
      7: 'Beaufort',
@@ -464,23 +510,72 @@ def dry_run(sim_start=None):
     72: 'Perquimans',
     74: 'Pitt',
     89: 'Tyrrell'}
+
+  involved_counties = dict(nc03_counties)
+  involved_counties.update(nc09_counties)
   
-  repo = "./docs/2019/apr/30/nc03/"
-  cache_read = "./../cache/2019/apr/30/"
+  repo = "./docs/2019/sep/10/nc/"
   
-  default_sim_start = datetime.datetime(2019, 4, 30, 19, 30)
-  id_to_COUNTY = {i:c.upper() for i,c in nc03_counties.items()}
+  cache_write = "./../cache/2019/sep/10/nc/"
   
-  #start simulation from 7:30PM, when polls closed
-  sim = FromCache(
-    cache_read,
-    sim_start or default_sim_start,
-    id_to_COUNTY)
+  rep_names = {
+    "Allen Thomas",
+     "Greg Murphy",
+     "Greg Holt",
+      "Tim Harris",
+      "Dan McCready",
+     "Jeff Scott",
+    "Allen Smith",
+      "Dan Bishop"}
   
   AutoDown(
     election_day,
-    id_to_COUNTY,
+    {i:c.upper() for i,c in involved_counties.items()},
     repo,
-    cache_path=None,
-    simulator=sim
+    cache_path=cache_write,
+    filter=(lambda results : [result
+                          for result in results
+                           if result['bnm'] in rep_names])
     ).run()
+
+##def dry_run(sim_start=None):
+##  election_day = "20190430"
+##  
+##  nc03_counties = {
+##     7: 'Beaufort',
+##    15: 'Camden',
+##    16: 'Carteret',
+##    21: 'Chowan',
+##    25: 'Craven',
+##    27: 'Currituck',
+##    28: 'Dare',
+##    40: 'Greene',
+##    48: 'Hyde',
+##    52: 'Jones',
+##    54: 'Lenoir',
+##    67: 'Onslow',
+##    69: 'Pamlico',
+##    70: 'Pasquotank',
+##    72: 'Perquimans',
+##    74: 'Pitt',
+##    89: 'Tyrrell'}
+##  
+##  repo = "./docs/2019/apr/30/nc03/"
+##  cache_read = "./../cache/2019/apr/30/"
+##  
+##  default_sim_start = datetime.datetime(2019, 4, 30, 19, 30)
+##  id_to_COUNTY = {i:c.upper() for i,c in nc03_counties.items()}
+##  
+##  #start simulation from 7:30PM, when polls closed
+##  sim = FromCache(
+##    cache_read,
+##    sim_start or default_sim_start,
+##    id_to_COUNTY)
+##  
+##  AutoDown(
+##    election_day,
+##    id_to_COUNTY,
+##    repo,
+##    cache_path=None,
+##    simulator=sim
+##    ).run()
