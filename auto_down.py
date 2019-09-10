@@ -175,7 +175,8 @@ class AutoDown:
     contest = cnm % district
     result = {record['pty'][0]:record['vct']
               for record in state if record['cnm'] == contest}
-    result['by_county'] = {NAME:self.distill_county(records, prec[NAME])
+    result['by_county'] = {NAME.upper():self.distill_county(records,
+                                                            prec[NAME])
                            for NAME, records in county.items()
                            if records[0]['cnm'] == contest}
     return result
@@ -189,9 +190,9 @@ class AutoDown:
       'isFinal': is_final or "",
     }
     
-    #If there's not actually any results yet, 
-    if all(d['vct'] == '0' for d in state):
-      return distilled
+##    #If there's not actually any results yet, 
+##    if all(d['vct'] == '0' for d in state):
+##      return distilled
     
     distilled['by_district'] = {
         district:self.distill_district(district, state, county, prec)
@@ -210,7 +211,7 @@ class AutoDown:
     
     subprocess.run('git push'.split(), cwd=self.repo_path)
 
-  def print_sample(distilled):
+  def print_sample(self, distilled):
     print()
     q = str(distilled)
     if len(q) <= 500:
@@ -510,15 +511,14 @@ def run():
     72: 'Perquimans',
     74: 'Pitt',
     89: 'Tyrrell'}
-
+  
   involved_counties = dict(nc03_counties)
-  involved_counties.update(nc09_counties)
   
   repo = "./docs/2019/sep/10/nc/"
   
   cache_write = "./../cache/2019/sep/10/nc/"
   
-  rep_names = {
+  candidate_names = {
     "Allen Thomas",
      "Greg Murphy",
      "Greg Holt",
@@ -530,12 +530,12 @@ def run():
   
   AutoDown(
     election_day,
-    {i:c.upper() for i,c in involved_counties.items()},
+    involved_counties,
     repo,
     cache_path=cache_write,
     filter=(lambda results : [result
                           for result in results
-                           if result['bnm'] in rep_names])
+                           if result['bnm'] in candidate_names])
     ).run()
 
 ##def dry_run(sim_start=None):
